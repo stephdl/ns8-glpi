@@ -23,7 +23,15 @@
     "glpi_webapp": "GLPI web application",
     "not_configured": "Not configured",
     "open_webapp": "Open GLPI",
-    "configure": "Configure"
+    "configure": "Configure",
+    "application": "Application",
+    "restart_application": "Restart application",
+    "restart_module_warning": "Are you sure you want to restart {name}? The service will be briefly unavailable during the restart.",
+    "go_to_node_details": "Go to node details",
+    "failed_services": "Failed services",
+    "all_services_running": "All services are running",
+    "search_images": "Search images",
+    "search_volumes": "Search volumes"
   },
   "settings": {
     "title": "Settings",
@@ -98,7 +106,8 @@
     "list-backup-repositories": "List backup repositories",
     "list-backups": "List backups",
     "list-installed-modules": "List installed modules",
-    "list-domain-groups": "List domain groups"
+    "list-domain-groups": "List domain groups",
+    "restart-module": "Restart module"
   },
   "error": {
     "error": "Error",
