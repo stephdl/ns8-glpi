@@ -1,5 +1,6 @@
 {
   "name": "GLPI",
+  "upstream_name": "GLPI version set automatically",
   "description": {
     "en": "IT service management and asset inventory, with domain user login and email notifications.",
     "fr": "Gestion des services informatiques et inventaire du parc, avec connexion des utilisateurs du domaine et notifications par email.",

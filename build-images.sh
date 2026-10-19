@@ -14,6 +14,21 @@ images=()
 repobase="${REPOBASE:-ghcr.io/nethserver}"
 # Configure the image name
 reponame="glpi"
+glpi_image="docker.io/glpi/glpi:12.0.0"
+mariadb_image="docker.io/mariadb:12.3.3"
+
+# Show the GLPI version in the About page: the module version does not tell it
+metadata_file="ui/public/metadata.json"
+metadata_backup=$(mktemp)
+cleanup() {
+    cp "${metadata_backup}" "${metadata_file}"
+    rm -f "${metadata_backup}"
+}
+cp "${metadata_file}" "${metadata_backup}"
+trap cleanup EXIT
+jq --arg v "${glpi_image##*:}" \
+   '.upstream_name |= gsub("version set automatically"; $v)' \
+   "${metadata_file}" > "${metadata_file}.tmp" && mv "${metadata_file}.tmp" "${metadata_file}"
 
 # Create a new empty container image
 container=$(buildah from scratch)
@@ -40,7 +55,7 @@ buildah config --entrypoint=/ \
     --label="org.nethserver.tcp-ports-demand=1" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.min-core=3.20.1" \
-    --label="org.nethserver.images=docker.io/mariadb:12.3.3 docker.io/glpi/glpi:12.0.0" \
+    --label="org.nethserver.images=${mariadb_image} ${glpi_image}" \
     --label="org.nethserver.volumes=glpi-data" \
     "${container}"
 # Commit the image
