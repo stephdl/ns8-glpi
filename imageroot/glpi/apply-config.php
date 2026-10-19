@@ -309,10 +309,14 @@ function apply_local_accounts(): void
         if (!$user->getFromDBbyName('glpi')) {
             fail('local glpi user not found');
         }
-        if (!$user->update(['id' => $user->getID(), 'password' => $password, 'password2' => $password])) {
+        // GLPI refuses to reuse the current password: an unchanged password is already applied
+        if (Auth::checkPassword($password, $user->fields['password'])) {
+            logmsg('Password of the glpi user unchanged');
+        } elseif (!$user->update(['id' => $user->getID(), 'password' => $password, 'password2' => $password])) {
             fail('cannot set the glpi user password');
+        } else {
+            logmsg('Password of the glpi user changed');
         }
-        logmsg('Password of the glpi user changed');
         // Read by glpi-apply-config, even when a later LDAP step fails
         echo "NS8_ADMIN_PASSWORD_APPLIED\n";
     }
