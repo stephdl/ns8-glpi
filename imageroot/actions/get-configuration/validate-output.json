@@ -1,36 +1,67 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Get glpi settings",
-    "$id": "http://nethserver.org/json-schema/task/input/glpi/get-configuration",
+    "$id": "http://nethserver.org/json-schema/task/output/glpi/get-configuration",
     "description": "Get glpi settings",
     "examples": [
         {
             "host": "glpi.domain.org",
             "http2https": true,
-            "lets_encrypt": true
+            "lets_encrypt": true,
+            "route_configured": true,
+            "user_domain": "ad.domain.org",
+            "admin_group": "Domain Admins",
+            "ldap_sync": true,
+            "mail_from": "",
+            "language": "en_GB",
+            "admin_password_set": true,
+            "user_domains_list": ["ad.domain.org", "openldap.domain.org"],
+            "smarthost": {"enabled": true, "host": "smtp.domain.org"}
         }
     ],
     "type": "object",
     "required": [
         "host",
         "http2https",
-        "lets_encrypt"
+        "lets_encrypt",
+        "route_configured",
+        "user_domain",
+        "admin_group",
+        "ldap_sync",
+        "mail_from",
+        "language",
+        "admin_password_set",
+        "user_domains_list",
+        "smarthost"
     ],
     "properties": {
-        "host": {
-            "type": "string",
-            "description": "Host name for the application, like 'glpi.domain.org'",
-            "format": "idn-hostname"
-        },
-        "lets_encrypt": {
+        "host": {"type": "string"},
+        "lets_encrypt": {"type": "boolean"},
+        "route_configured": {
             "type": "boolean",
-            "title": "Let's Encrypt certificate",
-            "description": "Request a valid Let's Encrypt certificate."
+            "description": "False when the instance has no Traefik route, for example after a clone"
         },
-        "http2https": {
+        "http2https": {"type": "boolean"},
+        "user_domain": {"type": "string"},
+        "admin_group": {"type": "string"},
+        "ldap_sync": {"type": "boolean"},
+        "mail_from": {"type": "string"},
+        "language": {"type": "string"},
+        "admin_password_set": {
             "type": "boolean",
-            "title": "HTTP to HTTPS redirection",
-            "description": "Redirect all the HTTP requests to HTTPS"
+            "description": "True when the glpi account password has been set from NS8"
+        },
+        "user_domains_list": {
+            "type": "array",
+            "items": {"type": "string"}
+        },
+        "smarthost": {
+            "type": "object",
+            "required": ["enabled", "host"],
+            "properties": {
+                "enabled": {"type": "boolean"},
+                "host": {"type": "string"}
+            }
         }
     }
 }
