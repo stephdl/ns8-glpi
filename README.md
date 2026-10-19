@@ -1,33 +1,18 @@
 # ns8-glpi
 
-This is a template module for [NethServer 8](https://github.com/NethServer/ns8-core).
-To start a new module from it:
+[GLPI](https://glpi-project.org/) IT service management for [NethServer 8](https://github.com/NethServer/ns8-core).
 
-1. Click on [Use this template](https://github.com/NethServer/ns8-glpi/generate).
-   Name your repo with `ns8-` prefix (e.g. `ns8-mymodule`). 
-   Do not end your module name with a number, like ~~`ns8-baaad2`~~!
+The module runs the official `glpi/glpi` image (Apache, PHP, built-in cron worker) with a MariaDB database in the same pod.
+Traefik publishes it on a dedicated host name.
 
-1. Clone the repository, enter the cloned directory and
-   [configure your GIT identity](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup#_your_identity)
+Features:
 
-1. Rename some references inside the repo:
-   ```
-   modulename=$(basename $(pwd) | sed 's/^ns8-//') &&
-   git mv imageroot/systemd/user/glpi.service imageroot/systemd/user/${modulename}.service &&
-   git mv imageroot/systemd/user/glpi-app.service imageroot/systemd/user/${modulename}-app.service && 
-   git mv tests/glpi.robot tests/${modulename}.robot &&
-   sed -i "s/glpi/${modulename}/g" $(find .github/ * -type f) &&
-   git commit -a -m "Repository initialization"
-   ```
-
-1. Edit this `README.md` file, by replacing this section with your module
-   description
-
-1. Adjust `.github/workflows` to your needs. `clean-registry.yml` might
-   need the proper list of image names to work correctly. Unused workflows
-   can be disabled from the GitHub Actions interface.
-
-1. Commit and push your local changes
+- login with GLPI local accounts and with the users of one NS8 user domain (OpenLDAP or Active Directory)
+- domain users are created at their first login with the Self-Service profile
+- members of an optional domain group get the Super-Admin profile
+- optional daily synchronization of domain users (names, emails, removed users get disabled)
+- email notifications through the cluster smarthost, when it is configured
+- backup, restore, clone and move
 
 ## Install
 
@@ -42,13 +27,19 @@ Output example:
 
 ## Configure
 
-Let's assume that the mattermost instance is named `glpi1`.
+Let's assume that the instance is named `glpi1`.
 
-Launch `configure-module`, by setting the following parameters:
-- `host`: a fully qualified domain name for the application
-- `http2https`: enable or disable HTTP to HTTPS redirection (true/false)
-- `lets_encrypt`: enable or disable Let's Encrypt certificate (true/false)
+Launch `configure-module` with the following parameters:
 
+- `host`: fully qualified domain name of the application
+- `http2https`: redirect HTTP to HTTPS (true/false)
+- `lets_encrypt`: request a Let's Encrypt certificate (true/false)
+- `language`: default GLPI language, for example `en_GB`, `fr_FR`, `it_IT`
+- `user_domain`: NS8 user domain for LDAP login, empty for local accounts only
+- `admin_group`: group of the user domain whose members get the Super-Admin profile, empty for none
+- `ldap_sync`: synchronize domain users every day (true/false)
+- `mail_from`: sender of GLPI notifications, empty for `noreply@<host>`
+- `admin_password`: password of the GLPI local `glpi` account. Required at the first configuration, optional later
 
 Example:
 
@@ -57,21 +48,54 @@ api-cli run configure-module --agent module/glpi1 --data - <<EOF
 {
   "host": "glpi.domain.com",
   "http2https": true,
-  "lets_encrypt": false
+  "lets_encrypt": false,
+  "language": "en_GB",
+  "user_domain": "ad.domain.com",
+  "admin_group": "Domain Admins",
+  "ldap_sync": true,
+  "mail_from": "",
+  "admin_password": "Choose,a-strong1"
 }
 EOF
 ```
 
-The above command will:
-- start and configure the glpi instance
-- configure a virtual host for trafik to access the instance
+The first start installs the GLPI database, it takes about one minute.
+The demo accounts `tech`, `normal` and `post-only` are disabled.
 
-## Get the configuration
-You can retrieve the configuration with
+The module writes its settings into GLPI at every configuration, smarthost change and user domain change.
+The LDAP directory is named `ns8-<domain>` and the admin rule `NS8 administrators group`: changes made to them from the GLPI interface are overwritten.
 
-```
-api-cli run get-configuration --agent module/glpi1
-```
+Get the current configuration with:
+
+    api-cli run get-configuration --agent module/glpi1
+
+## Backup, restore, clone
+
+The backup contains a dump of the database, the database credentials and the `glpi-data` volume (GLPI configuration, encryption key, documents, marketplace plugins).
+The `glpi-data` volume can be placed on an additional disk at install time.
+
+A cloned instance keeps the host name of its source and gets no Traefik route.
+Set a new host name from the Settings page to make it reachable.
+A moved instance keeps its host name.
+
+## Upgrade
+
+The GLPI image updates the database schema at startup when its version changes.
+Back up the instance before an upgrade to a new major version, and check that installed plugins support it.
+
+## Debug
+
+Show the module environment:
+
+    runagent -m glpi1 env
+
+Run the GLPI console:
+
+    runagent -m glpi1 podman exec -ti glpi-app php /var/www/glpi/bin/console list
+
+Apply the module settings to GLPI again:
+
+    runagent -m glpi1 glpi-apply-config
 
 ## Uninstall
 
@@ -79,93 +103,14 @@ To uninstall the instance:
 
     remove-module --no-preserve glpi1
 
-## Smarthost setting discovery
-
-Some configuration settings, like the smarthost setup, are not part of the
-`configure-module` action input: they are discovered by looking at some
-Redis keys.  To ensure the module is always up-to-date with the
-centralized [smarthost
-setup](https://nethserver.github.io/ns8-core/core/smarthost/) every time
-glpi starts, the command `bin/discover-smarthost` runs and refreshes
-the `state/smarthost.env` file with fresh values from Redis.
-
-Furthermore if smarthost setup is changed when glpi is already
-running, the event handler `events/smarthost-changed/10reload_services`
-restarts the main module service.
-
-See also the `systemd/user/glpi.service` file.
-
-This setting discovery is just an example to understand how the module is
-expected to work: it can be rewritten or discarded completely.
-
-## Debug
-
-some CLI are needed to debug
-
-- The module runs under an agent that initiate a lot of environment variables (in /home/glpi1/.config/state), it could be nice to verify them
-on the root terminal
-
-    `runagent -m glpi1 env`
-
-- you can become runagent for testing scripts and initiate all environment variables
-  
-    `runagent -m glpi1`
-
- the path become : 
-```
-    echo $PATH
-    /home/glpi1/.config/bin:/usr/local/agent/pyenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/
-```
-
-- if you want to debug a container or see environment inside
- `runagent -m glpi1`
- ```
-podman ps
-CONTAINER ID  IMAGE                                      COMMAND               CREATED        STATUS        PORTS                    NAMES
-d292c6ff28e9  localhost/podman-pause:4.6.1-1702418000                          9 minutes ago  Up 9 minutes  127.0.0.1:20015->80/tcp  80b8de25945f-infra
-d8df02bf6f4a  docker.io/library/mariadb:10.11.5          --character-set-s...  9 minutes ago  Up 9 minutes  127.0.0.1:20015->80/tcp  mariadb-app
-9e58e5bd676f  docker.io/library/nginx:stable-alpine3.17  nginx -g daemon o...  9 minutes ago  Up 9 minutes  127.0.0.1:20015->80/tcp  glpi-app
-```
-
-you can see what environment variable is inside the container
-```
-podman exec  glpi-app env
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-TERM=xterm
-PKG_RELEASE=1
-MARIADB_DB_HOST=127.0.0.1
-MARIADB_DB_NAME=glpi
-MARIADB_IMAGE=docker.io/mariadb:10.11.5
-MARIADB_DB_TYPE=mysql
-container=podman
-NGINX_VERSION=1.24.0
-NJS_VERSION=0.7.12
-MARIADB_DB_USER=glpi
-MARIADB_DB_PASSWORD=glpi
-MARIADB_DB_PORT=3306
-HOME=/root
-```
-
-you can run a shell inside the container
-
-```
-podman exec -ti   glpi-app sh
-/ # 
-```
 ## Testing
 
 Test the module using the `test-module.sh` script:
 
-
     ./test-module.sh <NODE_ADDR> ghcr.io/nethserver/glpi:latest
 
-The tests are made using [Robot Framework](https://robotframework.org/)
+The tests are made using [Robot Framework](https://robotframework.org/).
 
 ## UI translation
 
 Translated with [Weblate](https://hosted.weblate.org/projects/ns8/).
-
-To setup the translation process:
-
-- add [GitHub Weblate app](https://docs.weblate.org/en/latest/admin/continuous.html#github-setup) to your repository
-- add your repository to [hosted.weblate.org]((https://hosted.weblate.org) or ask a NethServer developer to add it to ns8 Weblate project
