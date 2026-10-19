@@ -29,9 +29,15 @@ if subprocess.run(["systemctl", "--user", "-q", "is-active", "glpi-app.service"]
 # Apache starts only after the GLPI database install or update is complete
 deadline = time.time() + STARTUP_TIMEOUT
 url = f"http://127.0.0.1:{os.environ['TCP_PORT']}/"
+# Any HTTP answer means Apache is up: never follow redirects to the public host name
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+opener = urllib.request.build_opener(NoRedirect)
 while True:
     try:
-        urllib.request.urlopen(url, timeout=5)
+        opener.open(url, timeout=5)
         break
     except urllib.error.HTTPError:
         break

@@ -199,30 +199,57 @@ function find_group_dn(string $group): ?string
     return $entries['count'] > 0 ? $entries[0]['dn'] : null;
 }
 
+/** Return true when the NS8 admin rule already targets this directory and group. */
+function admin_rule_matches(int $directory_id, int $group_id): bool
+{
+    global $DB;
+
+    $rule = new RuleRight();
+    if (!$rule->getFromDBByCrit(['uuid' => NS8_ADMIN_RULE_UUID])) {
+        return false;
+    }
+    $criteria = [];
+    foreach ($DB->request(['FROM' => RuleCriteria::getTable(), 'WHERE' => ['rules_id' => $rule->getID()]]) as $row) {
+        $criteria[$row['criteria']] = $row['pattern'];
+    }
+    return $criteria === ['LDAP_SERVER' => (string) $directory_id, '_groups_id' => (string) $group_id]
+        || $criteria === ['_groups_id' => (string) $group_id, 'LDAP_SERVER' => (string) $directory_id];
+}
+
 function apply_admin_rule(int $directory_id, string $group): void
 {
-    remove_admin_rule();
     if ($group === '') {
+        remove_admin_rule();
         return;
     }
 
+    // Resolve the group before touching the rule: a bind failure exits and keeps the current rule
     $group_dn = find_group_dn($group);
     if ($group_dn === null) {
-        // The group can be created later in the domain, do not block the configuration
-        logmsg("WARNING: LDAP group $group not found, admin rule not created");
+        remove_admin_rule();
+        logmsg("WARNING: LDAP group $group not found, admin rule removed");
         return;
     }
 
     $glpi_group = new Group();
     if (!$glpi_group->getFromDBByCrit(['ldap_group_dn' => $group_dn])) {
-        $glpi_group->add([
+        $group_id = $glpi_group->add([
             'name'          => $group,
             'entities_id'   => 0,
             'is_recursive'  => 1,
             'ldap_group_dn' => $group_dn,
             'comment'       => 'Managed by NethServer 8',
         ]);
+        if (!$group_id) {
+            fail("cannot create GLPI group for $group_dn");
+        }
     }
+
+    if (admin_rule_matches($directory_id, $glpi_group->getID())) {
+        logmsg("Admin rule unchanged for LDAP group $group_dn");
+        return;
+    }
+    remove_admin_rule();
 
     $profile = new Profile();
     if (!$profile->getFromDBByCrit(['name' => 'Super-Admin'])) {
