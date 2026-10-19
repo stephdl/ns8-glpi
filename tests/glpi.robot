@@ -87,12 +87,13 @@ Check if the default glpi password is replaced
 
 Check the admin can log in
     ${page} =    Log in to GLPI    glpi    ${GLPI_PASSWORD}
-    Should Contain    ${page}    /front/logout.php
+    # The logout icon is only in the menu of a logged in user
+    Should Contain    ${page}    ti-logout
 
 Check the default password cannot log in
     ${page} =    Log in to GLPI    glpi    glpi
-    Should Not Contain    ${page}    /front/logout.php
-    Should Contain    ${page}    login_password
+    Should Not Contain    ${page}    ti-logout
+    Should Contain    ${page}    Incorrect username or password
 
 Check a reconfigure without password is accepted
     Run task    module/${module_id}/configure-module    {${BASE_CONFIG}}
