@@ -378,7 +378,8 @@ export default {
       isLetsEncryptEnabled: false,
       isLetsEncryptCurrentlyEnabled: false,
       isRouteConfigured: true,
-      language: "en_GB",
+      // empty until the configuration loads: NsComboBox shows the label only when the value changes
+      language: "",
       adminPassword: "",
       isAdminPasswordSet: false,
       isChangePassword: false,
