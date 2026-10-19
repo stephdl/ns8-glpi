@@ -212,8 +212,8 @@ function admin_rule_matches(int $directory_id, int $group_id): bool
     foreach ($DB->request(['FROM' => RuleCriteria::getTable(), 'WHERE' => ['rules_id' => $rule->getID()]]) as $row) {
         $criteria[$row['criteria']] = $row['pattern'];
     }
-    return $criteria === ['LDAP_SERVER' => (string) $directory_id, '_groups_id' => (string) $group_id]
-        || $criteria === ['_groups_id' => (string) $group_id, 'LDAP_SERVER' => (string) $directory_id];
+    ksort($criteria);
+    return $criteria === ['LDAP_SERVER' => (string) $directory_id, '_groups_id' => (string) $group_id];
 }
 
 function apply_admin_rule(int $directory_id, string $group): void
@@ -288,9 +288,6 @@ function apply_admin_rule(int $directory_id, string $group): void
 
 function apply_ldap(): void
 {
-    if (env('NS8_LDAP_SKIP') === '1') {
-        return;
-    }
     $domain = env('NS8_LDAP_DOMAIN');
     if ($domain === '') {
         remove_admin_rule();
@@ -316,6 +313,8 @@ function apply_local_accounts(): void
             fail('cannot set the glpi user password');
         }
         logmsg('Password of the glpi user changed');
+        // Read by glpi-apply-config, even when a later LDAP step fails
+        echo "NS8_ADMIN_PASSWORD_APPLIED\n";
     }
 
     if (env('NS8_DISABLE_DEMO_USERS') === '1') {
@@ -331,6 +330,7 @@ function apply_local_accounts(): void
 
 \Session::callAsSystem(function () {
     apply_general_config();
-    apply_ldap();
+    // Before LDAP: an LDAP failure must not leave glpi/glpi and the demo accounts open
     apply_local_accounts();
+    apply_ldap();
 });

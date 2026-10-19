@@ -74,9 +74,9 @@ if user_domain:
     ldapproxy = Ldapproxy()
     domain = ldapproxy.get_domain(user_domain)
     if domain is None:
-        # The domain can be missing during a restore, the user-domain-changed event fixes it later
-        print(agent.SD_WARNING + f"User domain {user_domain} not available, LDAP settings unchanged", file=sys.stderr)
-        settings["NS8_LDAP_SKIP"] = "1"
+        # The domain is gone from the cluster: disable its directory, local accounts keep working
+        print(agent.SD_WARNING + f"User domain {user_domain} not found, LDAP login disabled", file=sys.stderr)
+        settings["NS8_LDAP_DOMAIN"] = ""
     else:
         settings.update({
             "NS8_LDAP_DOMAIN": user_domain,
@@ -105,13 +105,14 @@ with os.fdopen(fd, "w") as fp:
 
 try:
     with open(os.path.join(os.environ["AGENT_INSTALL_DIR"], "glpi", "apply-config.php"), "rb") as script:
-        proc = subprocess.run(["podman", "exec", "-i", f"--env-file={envfile}", "glpi-app", "php"], stdin=script)
+        proc = subprocess.run(["podman", "exec", "-i", f"--env-file={envfile}", "glpi-app", "php"], stdin=script, stdout=subprocess.PIPE, text=True)
 finally:
     os.unlink(envfile)
+
+if "NS8_ADMIN_PASSWORD_APPLIED" in proc.stdout and os.path.exists(ADMIN_PASSWORD_FILE):
+    os.unlink(ADMIN_PASSWORD_FILE)
+    agent.set_env("ADMIN_PASSWORD_SET", True)
 
 if proc.returncode != 0:
     print(agent.SD_ERR + "GLPI configuration failed", file=sys.stderr)
     sys.exit(proc.returncode)
-
-if os.path.exists(ADMIN_PASSWORD_FILE):
-    os.unlink(ADMIN_PASSWORD_FILE)
