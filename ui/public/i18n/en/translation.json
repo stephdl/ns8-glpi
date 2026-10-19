@@ -2,7 +2,8 @@
   "common": {
     "required": "Required",
     "work_in_progress": "Work in progress",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "loading": "Loading..."
   },
   "status": {
     "title": "Status",
@@ -19,26 +20,69 @@
     "no_services": "No services",
     "no_images": "No images",
     "no_volumes": "No volumes",
-    "glpi_webapp": "glpi webapp",
+    "glpi_webapp": "GLPI web application",
     "not_configured": "Not configured",
-    "open_webapp": "Open glpi",
+    "open_webapp": "Open GLPI",
     "configure": "Configure"
   },
   "settings": {
     "title": "Settings",
     "configure_instance": "Configure {instance}",
     "save": "Save",
-    "glpi_fqdn": "glpi hostname (FQDN)",
+    "glpi_fqdn": "GLPI hostname (FQDN)",
     "lets_encrypt": "Request LE Certificate",
     "http_to_https": "Force HTTPS",
     "enabled": "Enabled",
     "disabled": "Disabled",
     "advanced": "Advanced",
     "configuring": "Configuring",
-    "instance_configuration": "Configure glpi",
+    "instance_configuration": "Configure GLPI",
     "domain_already_used_in_traefik": "Domain already used in traefik",
     "host_pattern": "Must be a valid fully qualified domain name",
-    "host_format": "Must be a valid fully qualified domain name"
+    "host_format": "Must be a valid fully qualified domain name",
+    "web_access": "Web access",
+    "language": "Default language",
+    "choose_language": "Choose a language",
+    "language_helper": "Language of GLPI pages and notifications. Each user can change it in their preferences",
+    "admin_account": "Local administrator",
+    "admin_account_info_title": "The glpi account",
+    "admin_account_info_first": "The local glpi account has the Super-Admin profile. Choose its password now: the default glpi password is replaced. The demo accounts tech, normal and post-only are disabled.",
+    "admin_account_info_set": "The local glpi account has the Super-Admin profile and always works, even if the user domain is unavailable. Leave the fields empty to keep the current password.",
+    "new_admin_password": "Password of the glpi account",
+    "new_admin_password_optional": "New password of the glpi account (optional)",
+    "confirm_admin_password": "Confirm password",
+    "hide_password": "Hide password",
+    "show_password": "Show password",
+    "admin_password_required": "Choose a password for the glpi account",
+    "authentication": "Authentication",
+    "no_user_domain_title": "No user domain",
+    "no_user_domain_description": "Only GLPI local accounts can log in. Create or join a user domain (OpenLDAP or Active Directory) to let domain users log in to GLPI.",
+    "go_to_domains": "Go to Domains and users",
+    "ldap_authentication": "Domain users can log in",
+    "ldap_authentication_tooltip": "Users of the selected user domain log in to GLPI with their domain credentials. GLPI local accounts keep working.",
+    "ldap_info_title": "How domain users are added",
+    "ldap_info_description": "A GLPI account is created at the first login with the Self-Service profile. Members of the administrators group get the Super-Admin profile instead.",
+    "user_domain": "User domain",
+    "choose_user_domain": "Choose a user domain",
+    "admin_group": "Administrators group (optional)",
+    "choose_admin_group": "Choose a group",
+    "admin_group_helper": "Members of this group get the GLPI Super-Admin profile",
+    "ldap_sync": "Daily synchronization",
+    "ldap_sync_tooltip": "Every day, GLPI updates names and emails of domain users and disables the accounts removed from the domain. User data is also updated at each login.",
+    "notifications": "Email notifications",
+    "smarthost_disabled_title": "Email notifications disabled",
+    "smarthost_disabled_description": "GLPI sends emails through the cluster smarthost, which is not configured. Configure it to enable ticket notifications.",
+    "go_to_smarthost": "Configure smarthost",
+    "smarthost_enabled_title": "Email notifications enabled",
+    "smarthost_enabled_description": "GLPI sends emails through the cluster smarthost {host}.",
+    "mail_from": "Sender address (optional)",
+    "mail_from_helper": "Address used as sender of GLPI notifications",
+    "mail_from_format": "Must be a valid email address",
+    "language_enum": "Choose a language from the list",
+    "admin_password_minLength": "The password is too short",
+    "no_route_title": "This instance has no web address",
+    "no_route_description": "This instance is a clone and keeps the host name of its source. Set a new host name and save to make GLPI reachable.",
+    "user_domain_not_found": "This user domain does not exist"
   },
   "about": {
     "title": "About"
@@ -54,7 +98,8 @@
     "get-name": "Get name",
     "list-backup-repositories": "List backup repositories",
     "list-backups": "List backups",
-    "list-installed-modules": "List installed modules"
+    "list-installed-modules": "List installed modules",
+    "list-domain-groups": "List domain groups"
   },
   "error": {
     "error": "Error",
@@ -68,5 +113,15 @@
     "cannot_retrieve_module_info": "Cannot retrieve module info",
     "cannot_retrieve_installed_modules": "Cannot retrieve installed modules",
     "cannot_retrieve_configuration": "Cannot retrieve configuration"
+  },
+  "password": {
+    "long_enough": "Long enough",
+    "lowercase_letter": "Lowercase letter",
+    "uppercase_letter": "Uppercase letter",
+    "number": "Number",
+    "symbol": "Symbol",
+    "equal": "Passwords match",
+    "password_too_short": "The password is too short",
+    "passwords_do_not_match": "Passwords do not match"
   }
 }
