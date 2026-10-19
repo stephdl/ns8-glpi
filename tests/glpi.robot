@@ -60,6 +60,8 @@ Check if glpi can be configured
 Check services are running
     ${status} =    Run task    module/${module_id}/get-status    null
     FOR    ${service}    IN    @{status['services']}
+        # A oneshot unit started by its timer is inactive between runs
+        IF    $service['name'] == 'glpi-ldap-sync'    CONTINUE
         Should Be True    ${service['active']}    ${service['name']} is not active
     END
 
@@ -71,7 +73,7 @@ Check if glpi works as expected
     Should Match Regexp    ${code}    ^30[178]$
 
 Check if the default glpi password is replaced
-    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app php -r 'require "/var/www/glpi/vendor/autoload.php"; (new Glpi\Kernel\Kernel())->boot(); $u = new User(); $u->getFromDBbyName("glpi"); echo Auth::checkPassword("glpi", $u->fields["password"]) ? "default" : "changed";'
+    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app php -r 'require "/var/www/glpi/vendor/autoload.php"; (new Glpi\\Kernel\\Kernel())->boot(); $u = new User(); $u->getFromDBbyName("glpi"); echo Auth::checkPassword("glpi", $u->fields["password"]) ? "default" : "changed";'
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}  0
     Should Be Equal    ${output}    changed
