@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+#
+# Push the module settings (smarthost, user domain, admin account) into GLPI.
+# Safe to run many times. Does nothing if GLPI is not running.
+#
+
+import os
+import sys
+import time
+import subprocess
+import urllib.request
+import agent
+from agent.ldapproxy import Ldapproxy
+
+ADMIN_PASSWORD_FILE = "secrets/admin_password"
+# The first start installs the GLPI database, it can take a few minutes
+STARTUP_TIMEOUT = 600
+
+if subprocess.run(["systemctl", "--user", "-q", "is-active", "glpi-app.service"]).returncode != 0:
+    print("glpi-app.service is not running, settings will be applied at next configuration", file=sys.stderr)
+    sys.exit(0)
+
+# Apache starts only after the GLPI database install or update is complete
+deadline = time.time() + STARTUP_TIMEOUT
+url = f"http://127.0.0.1:{os.environ['TCP_PORT']}/"
+# Any HTTP answer means Apache is up: never follow redirects to the public host name
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+opener = urllib.request.build_opener(NoRedirect)
+while True:
+    try:
+        opener.open(url, timeout=5)
+        break
+    except urllib.error.HTTPError:
+        break
+    except Exception:
+        if time.time() > deadline:
+            print(agent.SD_ERR + "GLPI did not start in time", file=sys.stderr)
+            sys.exit(1)
+        time.sleep(3)
+
+settings = {
+    "NS8_HOST": os.environ["TRAEFIK_HOST"],
+    "NS8_LANGUAGE": os.getenv("GLPI_LANGUAGE", "en_GB"),
+    "NS8_MAIL_FROM": os.getenv("MAIL_FROM", ""),
+    "NS8_DISABLE_DEMO_USERS": "1",
+}
+
+rdb = agent.redis_connect(use_replica=True)
+smtp = agent.get_smarthost_settings(rdb)
+if smtp["enabled"] and smtp["host"]:
+    # From inside the pod, 10.0.2.2 is the node loopback
+    smtp_host = "10.0.2.2" if smtp["host"] in ("127.0.0.1", "localhost") else smtp["host"]
+    settings.update({
+        "NS8_SMTP_ENABLED": "1",
+        "NS8_SMTP_HOST": smtp_host,
+        "NS8_SMTP_PORT": str(smtp["port"]),
+        "NS8_SMTP_USERNAME": smtp["username"],
+        "NS8_SMTP_PASSWORD": smtp["password"],
+        "NS8_SMTP_ENCRYPTION": smtp["encrypt_smtp"],
+        "NS8_SMTP_TLSVERIFY": "1" if smtp["tls_verify"] else "0",
+    })
+
+user_domain = os.getenv("USER_DOMAIN", "")
+if user_domain:
+    ldapproxy = Ldapproxy()
+    domain = ldapproxy.get_domain(user_domain)
+    if domain is None:
+        # The domain is gone from the cluster: disable its directory, local accounts keep working
+        print(agent.SD_WARNING + f"User domain {user_domain} not found, LDAP login disabled", file=sys.stderr)
+        settings["NS8_LDAP_DOMAIN"] = ""
+    else:
+        settings.update({
+            "NS8_LDAP_DOMAIN": user_domain,
+            "NS8_LDAP_HOST": "accountprovider",
+            "NS8_LDAP_PORT": str(domain["port"]),
+            "NS8_LDAP_SCHEMA": domain["schema"],
+            "NS8_LDAP_BASE_DN": domain["base_dn"],
+            "NS8_LDAP_BIND_DN": domain["bind_dn"],
+            "NS8_LDAP_BIND_PASSWORD": domain["bind_password"],
+            "NS8_LDAP_USERS_FILTER": ldapproxy.get_ldap_users_search_filter_clause(user_domain),
+            "NS8_ADMIN_GROUP": os.getenv("ADMIN_GROUP", ""),
+        })
+else:
+    settings["NS8_LDAP_DOMAIN"] = ""
+
+if os.path.exists(ADMIN_PASSWORD_FILE):
+    with open(ADMIN_PASSWORD_FILE) as fp:
+        settings["NS8_ADMIN_PASSWORD"] = fp.read().rstrip("\n")
+
+# Secrets go through a private env file, never on the command line
+envfile = f"secrets/apply-config.env.{os.getpid()}"
+fd = os.open(envfile, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+with os.fdopen(fd, "w") as fp:
+    for key, value in settings.items():
+        fp.write(f"{key}={value}\n")
+
+try:
+    with open(os.path.join(os.environ["AGENT_INSTALL_DIR"], "glpi", "apply-config.php"), "rb") as script:
+        proc = subprocess.run(["podman", "exec", "-i", f"--env-file={envfile}", "glpi-app", "php"], stdin=script, stdout=subprocess.PIPE, text=True)
+finally:
+    os.unlink(envfile)
+
+if "NS8_ADMIN_PASSWORD_APPLIED" in proc.stdout and os.path.exists(ADMIN_PASSWORD_FILE):
+    os.unlink(ADMIN_PASSWORD_FILE)
+    agent.set_env("ADMIN_PASSWORD_SET", True)
+
+if proc.returncode != 0:
+    print(agent.SD_ERR + "GLPI configuration failed", file=sys.stderr)
+    sys.exit(proc.returncode)

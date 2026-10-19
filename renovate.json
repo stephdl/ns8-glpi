@@ -2,5 +2,24 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>NethServer/.github:ns8-automerge"
+  ],
+  "packageRules": [
+    {
+      "description": "Stay on the MariaDB 12.3 LTS branch, a major upgrade needs a dump and restore",
+      "matchDepNames": [
+        "mariadb"
+      ],
+      "allowedVersions": "/^12\\.3\\./"
+    },
+    {
+      "description": "A GLPI major upgrade migrates the database and can break plugins: review it by hand",
+      "matchDepNames": [
+        "glpi/glpi"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false
+    }
   ]
 }

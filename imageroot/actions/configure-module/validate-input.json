@@ -6,13 +6,33 @@
     "examples": [
         {
             "host": "glpi.domain.org",
-            "http2https": true,
-            "lets_encrypt": true
+            "lets_encrypt": true,
+            "user_domain": "ad.domain.org",
+            "admin_group": "Domain Admins",
+            "ldap_sync": true,
+            "mail_from": "glpi@domain.org",
+            "language": "en_GB",
+            "admin_password": "Nethesis,1234"
+        },
+        {
+            "host": "glpi.domain.org",
+            "lets_encrypt": false,
+            "user_domain": "",
+            "admin_group": "",
+            "ldap_sync": false,
+            "mail_from": "",
+            "language": "fr_FR"
         }
     ],
     "type": "object",
     "required": [
-        "host"
+        "host",
+        "lets_encrypt",
+        "user_domain",
+        "admin_group",
+        "ldap_sync",
+        "mail_from",
+        "language"
     ],
     "properties": {
         "host": {
@@ -26,10 +46,49 @@
             "title": "Let's Encrypt certificate",
             "description": "Request a valid Let's Encrypt certificate."
         },
-        "http2https": {
+        "user_domain": {
+            "type": "string",
+            "description": "NS8 user domain used for LDAP authentication. Empty for local accounts only."
+        },
+        "admin_group": {
+            "type": "string",
+            "description": "Group of the user domain whose members get the GLPI Super-Admin profile. Empty for none."
+        },
+        "ldap_sync": {
             "type": "boolean",
-            "title": "HTTP to HTTPS redirection",
-            "description": "Redirect all the HTTP requests to HTTPS"
+            "description": "Synchronize GLPI users with the user domain every day"
+        },
+        "mail_from": {
+            "type": "string",
+            "description": "Sender address of GLPI notifications. Empty for noreply@<host>.",
+            "anyOf": [
+                {
+                    "maxLength": 0
+                },
+                {
+                    "format": "email"
+                }
+            ]
+        },
+        "language": {
+            "type": "string",
+            "description": "Default GLPI language",
+            "enum": [
+                "en_GB",
+                "en_US",
+                "fr_FR",
+                "it_IT",
+                "es_ES",
+                "de_DE",
+                "pt_PT",
+                "pt_BR",
+                "nl_NL"
+            ]
+        },
+        "admin_password": {
+            "type": "string",
+            "description": "New password of the GLPI local 'glpi' Super-Admin account. Omit to keep the current one.",
+            "minLength": 8
         }
     }
 }

@@ -1,40 +1,35 @@
 #
-# Copyright (C) 2022 Nethesis S.r.l.
+# Copyright (C) 2026 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
 [Unit]
-Description=Podman  glpi-app.service
+Description=Podman glpi-app.service
 BindsTo=glpi.service
 After=glpi.service mariadb-app.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
-EnvironmentFile=-%S/state/smarthost.env
-WorkingDirectory=%S/state
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/mkdir -p tmp
 ExecStartPre=/bin/rm -f %t/glpi-app.pid %t/glpi-app.ctr-id
-ExecStartPre=-runagent discover-smarthost
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/glpi-app.pid \
     --cidfile %t/glpi-app.ctr-id --cgroups=no-conmon \
-    --pod-id-file %t/glpi.pod-id --replace -d --name  glpi-app \
-    --volume glpi-app:/var/www/html/:Z \
-    --volume ./tmp:/tmp:Z \
-    --env=MARIADB_* \
-    --env MARIADB_DB_TYPE=mysql \
-    --env MARIADB_DB_HOST=127.0.0.1 \
-    --env MARIADB_DB_PORT=3306 \
-    --env MARIADB_DB_USER=glpi \
-    --env MARIADB_DB_PASSWORD=glpi \
-    --env MARIADB_DB_NAME=glpi \
-    ${NGINX_IMAGE}
+    --pod-id-file %t/glpi.pod-id --replace -d --name glpi-app \
+    --volume glpi-data:/var/glpi:Z \
+    --volume %S/glpi/local_define.php:/var/www/glpi/config/local_define.php:ro,z \
+    --volume %S/glpi/php-ns8.ini:/usr/local/etc/php/conf.d/zz-ns8.ini:ro,z \
+    --env NS8_POD_HOSTNAME=${TRAEFIK_HOST} \
+    --env-file=%S/state/secrets/glpi.env \
+    --env GLPI_DB_HOST=127.0.0.1 \
+    --env GLPI_DB_PORT=3306 \
+    --env GLPI_DB_NAME=glpi \
+    --env GLPI_DB_USER=glpi \
+    ${GLPI_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/glpi-app.ctr-id -t 10
-ExecReload=/usr/bin/podman kill -s HUP glpi-app
-SyslogIdentifier=%u
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/glpi-app.ctr-id
+SyslogIdentifier=%u
 PIDFile=%t/glpi-app.pid
 Type=forking
 

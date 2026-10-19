@@ -1,35 +1,125 @@
 {
-    "common": {
-        "required": "Obrigatório",
-        "work_in_progress": "Em progresso",
-        "processing": "Procesando..."
-    },
-    "status": {
-        "services": "Serviço | Serviços",
-        "app_instance": "Instância do aplicativo",
-        "title": "Estado"
-    },
-    "error": {
-        "403": "Operation not authorized",
-        "401": "Invalid authentication",
-        "generic_error": "Something went wrong",
-        "error": "Error",
-        "network_timeout": "Network timeout",
-        "404": "Resource not found",
-        "network_error": "Network error",
-        "validation_error": "Validation error"
-    },
-    "about": {
-        "title": "About"
-    },
-    "action": {
-        "list-backup-repositories": "List backup repositories",
-        "list-backups": "List backups"
-    },
-    "task": {
-        "cannot_create_task": "Cannot create task {action}"
-    },
-    "settings": {
-        "title": "Settings"
-    }
+  "common": {
+    "required": "Obrigatório",
+    "work_in_progress": "Trabalho em andamento",
+    "processing": "Processando...",
+    "loading": "Carregando..."
+  },
+  "status": {
+    "title": "Estado",
+    "app_instance": "Instância da aplicação",
+    "services": "Serviço | Serviços",
+    "app_images": "Imagem da aplicação | Imagens da aplicação",
+    "app_volumes": "Volume da aplicação | Volumes da aplicação",
+    "installation_node": "Nó de instalação",
+    "node": "Nó",
+    "name": "Nome",
+    "size": "Tamanho",
+    "created": "Criado",
+    "mount": "Ponto de montagem",
+    "no_services": "Nenhum serviço",
+    "no_images": "Nenhuma imagem",
+    "no_volumes": "Nenhum volume",
+    "glpi_webapp": "Aplicação web GLPI",
+    "not_configured": "Não configurado",
+    "open_webapp": "Abrir o GLPI",
+    "configure": "Configurar",
+    "application": "Aplicação",
+    "restart_application": "Reiniciar a aplicação",
+    "restart_module_warning": "Tem a certeza de que quer reiniciar {name}? O serviço ficará indisponível durante alguns instantes.",
+    "go_to_node_details": "Ver os detalhes do nó",
+    "failed_services": "Serviços com falha",
+    "all_services_running": "Todos os serviços estão em execução",
+    "search_images": "Procurar imagens",
+    "search_volumes": "Procurar volumes"
+  },
+  "settings": {
+    "title": "Configurações",
+    "configure_instance": "Configurar {instance}",
+    "save": "Salvar",
+    "glpi_fqdn": "Nome do host do GLPI (FQDN)",
+    "lets_encrypt": "Solicitar um certificado Let's Encrypt",
+    "enabled": "Ativado",
+    "disabled": "Desativado",
+    "advanced": "Avançado",
+    "configuring": "Configurando",
+    "instance_configuration": "Configurar o GLPI",
+    "domain_already_used_in_traefik": "Domínio já usado no Traefik",
+    "host_pattern": "Deve ser um nome de domínio completo válido",
+    "host_format": "Deve ser um nome de domínio completo válido",
+    "web_access": "Acesso web",
+    "language": "Idioma predefinido",
+    "choose_language": "Escolher um idioma",
+    "language_helper": "Idioma das páginas e notificações do GLPI. Cada usuário pode alterá-lo nas suas preferências",
+    "admin_account": "Administrador local",
+    "admin_account_info_title": "A conta glpi",
+    "admin_account_info_first": "A conta local glpi tem o perfil Super-Admin. Escolha agora a sua senha: ela substitui a senha glpi padrão. As contas de demonstração tech, normal e post-only são desativadas.",
+    "admin_account_info_set": "A conta local glpi tem o perfil Super-Admin e sempre funciona, mesmo se o domínio de usuários estiver indisponível.",
+    "authentication": "Autenticação",
+    "no_user_domain_title": "Nenhum domínio de usuários",
+    "no_user_domain_description": "Somente as contas locais do GLPI podem entrar. Crie ou entre em um domínio de usuários (OpenLDAP ou Active Directory) para que os usuários do domínio possam entrar no GLPI.",
+    "go_to_domains": "Ir para Domínios e usuários",
+    "ldap_authentication": "Os usuários do domínio podem entrar",
+    "ldap_authentication_tooltip": "Os usuários do domínio escolhido entram no GLPI com as credenciais do domínio. As contas locais do GLPI continuam funcionando.",
+    "ldap_info_title": "Como os usuários do domínio são adicionados",
+    "ldap_info_description": "No primeiro login é criada uma conta GLPI com o perfil Self-Service. Os membros do grupo de administradores recebem o perfil Super-Admin.",
+    "user_domain": "Domínio de usuários",
+    "choose_user_domain": "Escolher um domínio de usuários",
+    "admin_group": "Grupo de administradores (opcional)",
+    "choose_admin_group": "Escolher um grupo",
+    "admin_group_helper": "Os membros deste grupo recebem o perfil Super-Admin do GLPI",
+    "ldap_sync": "Sincronização diária",
+    "ldap_sync_tooltip": "Todos os dias o GLPI atualiza os nomes e e-mails dos usuários do domínio e desativa as contas removidas do domínio. Os dados também são atualizados a cada login.",
+    "notifications": "Notificações por e-mail",
+    "smarthost_disabled_title": "Notificações por e-mail desativadas",
+    "smarthost_disabled_description": "O GLPI envia os e-mails pelo smarthost do cluster, que não está configurado. Configure-o para ativar as notificações dos chamados.",
+    "go_to_smarthost": "Configurar o smarthost",
+    "smarthost_enabled_title": "Notificações por e-mail ativadas",
+    "smarthost_enabled_description": "O GLPI envia os e-mails pelo smarthost do cluster {host}.",
+    "mail_from": "Endereço do remetente (opcional)",
+    "mail_from_helper": "Endereço usado como remetente das notificações do GLPI",
+    "mail_from_format": "Deve ser um endereço de e-mail válido",
+    "language_enum": "Escolha um idioma da lista",
+    "admin_password_minLength": "A senha é muito curta",
+    "no_route_title": "Esta instância não tem endereço web",
+    "no_route_description": "Esta instância é um clone e mantém o nome do host da sua origem. Defina um novo nome do host e salve para tornar o GLPI acessível.",
+    "user_domain_not_found": "Este domínio de usuários não existe",
+    "change_admin_password": "Alterar a senha da conta glpi",
+    "admin_password": "Senha da conta glpi",
+    "admin_password_confirm": "Confirmar a senha",
+    "admin_password_too_weak": "Use pelo menos 8 caracteres com minúsculas, maiúsculas, um número e um símbolo",
+    "admin_password_mismatch": "As senhas não coincidem",
+    "admin_password_required": "Escolha uma senha para a conta glpi"
+  },
+  "about": {
+    "title": "Sobre"
+  },
+  "task": {
+    "cannot_create_task": "Não é possível criar a tarefa {action}"
+  },
+  "action": {
+    "get-status": "Obter o estado",
+    "get-configuration": "Obter a configuração",
+    "configure-module": "Configurar o módulo",
+    "get-module-info": "Obter as informações do módulo",
+    "get-name": "Obter o nome",
+    "list-backup-repositories": "Listar os repositórios de backup",
+    "list-backups": "Listar os backups",
+    "list-installed-modules": "Listar os módulos instalados",
+    "list-domain-groups": "Listar os grupos do domínio",
+    "restart-module": "Reiniciar o módulo"
+  },
+  "error": {
+    "error": "Erro",
+    "generic_error": "Algo correu mal",
+    "validation_error": "Erro de validação",
+    "network_error": "Erro de rede",
+    "network_timeout": "Tempo limite da rede esgotado",
+    "401": "Autenticação inválida",
+    "403": "Operação não autorizada",
+    "404": "Recurso não encontrado",
+    "cannot_retrieve_module_info": "Não é possível obter as informações do módulo",
+    "cannot_retrieve_installed_modules": "Não é possível obter os módulos instalados",
+    "cannot_retrieve_configuration": "Não é possível obter a configuração"
+  }
 }

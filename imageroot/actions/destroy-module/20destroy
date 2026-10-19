@@ -1,1 +1,11 @@
-# Placeholder, see bug NethServer/dev#7058
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+
+# Release the user domain, the Traefik route is removed by the core
+agent.bind_user_domains([])

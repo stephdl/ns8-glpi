@@ -1,19 +1,29 @@
 {
-  "name": "glpi",
+  "name": "GLPI",
+  "upstream_name": "GLPI version set automatically",
   "description": {
-    "en": "My glpi module"
+    "en": "IT service management and asset inventory, with domain user login and email notifications.",
+    "fr": "Gestion des services informatiques et inventaire du parc, avec connexion des utilisateurs du domaine et notifications par email.",
+    "it": "Gestione dei servizi IT e inventario degli asset, con accesso degli utenti del dominio e notifiche email.",
+    "de": "IT-Service-Management und Inventarisierung, mit Anmeldung der Domainbenutzer und E-Mail-Benachrichtigungen.",
+    "es": "Gestión de servicios TI e inventario de activos, con inicio de sesión de usuarios del dominio y notificaciones por correo.",
+    "pt": "Gestão de serviços de TI e inventário de ativos, com início de sessão dos utilizadores do domínio e notificações por email.",
+    "pt_BR": "Gestão de serviços de TI e inventário de ativos, com login dos usuários do domínio e notificações por e-mail.",
+    "eu": "IKT zerbitzuen kudeaketa eta aktiboen inbentarioa, domeinuko erabiltzaileen saio hasierarekin eta posta bidezko jakinarazpenekin."
   },
-  "categories": [],
+  "categories": [
+    "collaboration"
+  ],
   "authors": [
     {
-      "name": "Name Surname",
-      "email": "author@yourmail.org"
+      "name": "Stephane de Labrusse",
+      "email": "stephdl@de-labrusse.fr"
     }
   ],
   "docs": {
-    "documentation_url": "https://docs.glpi.com/",
-    "bug_url": "https://github.com/NethServer/dev",
-    "code_url": "https://github.com/author/ns8-glpi"
+    "documentation_url": "https://github.com/stephdl/ns8-glpi#readme",
+    "bug_url": "https://github.com/stephdl/dev/issues",
+    "code_url": "https://github.com/stephdl/ns8-glpi"
   },
-  "source": "ghcr.io/nethserver/glpi"
+  "source": "ghcr.io/stephdl/glpi"
 }

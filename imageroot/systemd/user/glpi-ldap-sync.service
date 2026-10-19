@@ -1,0 +1,14 @@
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+[Unit]
+Description=Synchronize GLPI users with the NS8 user domain
+Requisite=glpi-app.service
+After=glpi-app.service
+
+[Service]
+Type=oneshot
+SyslogIdentifier=%N
+ExecStart=/usr/bin/podman exec glpi-app php /var/www/glpi/bin/console ldap:synchronize_users --no-interaction

@@ -1,17 +1,29 @@
 #!/bin/bash
 
 #
-# Copyright (C) 2023 Nethesis S.r.l.
+# Copyright (C) 2026 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
+
 set -e
 
 # Redirect any output to the journal (stderr)
 exec 1>&2
 
-# If the control reaches this step, the service can be enabled and started
-
-touch smarthost.env
+# The pod hostname (SMTP EHLO name) applies only at start
+running=$(podman inspect glpi-app --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -E '^NS8_POD_HOSTNAME=' | sort | tr '\n' ' ' || :)
+wanted="NS8_POD_HOSTNAME=${TRAEFIK_HOST} "
+if [[ -n "${running}" && "${running}" != "${wanted}" ]]; then
+    systemctl --user stop glpi.service
+fi
 
 systemctl --user enable glpi.service
-systemctl --user restart glpi.service
+systemctl --user start glpi.service mariadb-app.service glpi-app.service
+
+if [[ "${LDAP_SYNC}" == "True" ]]; then
+    systemctl --user enable --now glpi-ldap-sync.timer
+else
+    systemctl --user disable --now glpi-ldap-sync.timer
+fi
+
+runagent glpi-apply-config
