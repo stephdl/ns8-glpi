@@ -28,6 +28,13 @@ GLPI answers
     ${code} =    HTTP code    https://127.0.0.1/    -L
     Should Be Equal    ${code}    200
 
+Log in to GLPI
+    [Arguments]    ${user}    ${password}
+    # The first GET sets the session cookie that front/login.php requires
+    ${page} =    Execute Command
+    ...    jar=$(mktemp); curl -sk -c $jar -b $jar --resolve ${TEST_HOST}:443:127.0.0.1 https://${TEST_HOST}/ -o /dev/null; curl -sk -L -c $jar -b $jar --resolve ${TEST_HOST}:443:127.0.0.1 --data-urlencode 'login_name=${user}' --data-urlencode 'login_password=${password}' https://${TEST_HOST}/front/login.php; rm -f $jar
+    RETURN    ${page}
+
 *** Test Cases ***
 Check if glpi is installed correctly
     ${output}  ${rc} =    Execute Command    add-module ${IMAGE_URL} 1
@@ -77,6 +84,15 @@ Check if the default glpi password is replaced
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}  0
     Should Be Equal    ${output}    changed
+
+Check the admin can log in
+    ${page} =    Log in to GLPI    glpi    ${GLPI_PASSWORD}
+    Should Contain    ${page}    /front/logout.php
+
+Check the default password cannot log in
+    ${page} =    Log in to GLPI    glpi    glpi
+    Should Not Contain    ${page}    /front/logout.php
+    Should Contain    ${page}    login_password
 
 Check a reconfigure without password is accepted
     Run task    module/${module_id}/configure-module    {${BASE_CONFIG}}
