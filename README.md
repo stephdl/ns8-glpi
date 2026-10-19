@@ -32,7 +32,6 @@ Let's assume that the instance is named `glpi1`.
 Launch `configure-module` with the following parameters:
 
 - `host`: fully qualified domain name of the application
-- `http2https`: redirect HTTP to HTTPS (true/false)
 - `lets_encrypt`: request a Let's Encrypt certificate (true/false)
 - `language`: default GLPI language, for example `en_GB`, `fr_FR`, `it_IT`
 - `user_domain`: NS8 user domain for LDAP login, empty for local accounts only
@@ -47,7 +46,6 @@ Example:
 api-cli run configure-module --agent module/glpi1 --data - <<EOF
 {
   "host": "glpi.domain.com",
-  "http2https": true,
   "lets_encrypt": false,
   "language": "en_GB",
   "user_domain": "ad.domain.com",

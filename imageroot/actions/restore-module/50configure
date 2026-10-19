@@ -22,7 +22,6 @@ if user_domain and user_domain not in Ldapproxy().get_domains_list():
 
 configure_retval = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={
     "host": renv["TRAEFIK_HOST"],
-    "http2https": renv["TRAEFIK_HTTP2HTTPS"] == "True",
     "lets_encrypt": renv.get("TRAEFIK_LETS_ENCRYPT") == "True",
     "user_domain": user_domain,
     "admin_group": admin_group,

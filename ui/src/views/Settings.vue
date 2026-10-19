@@ -86,20 +86,6 @@
               "
               :showCloseButton="false"
             />
-            <NsToggle
-              value="httpToHttps"
-              :label="$t('settings.http_to_https')"
-              v-model="isHttpToHttpsEnabled"
-              :disabled="stillLoading"
-              class="mg-bottom"
-            >
-              <template slot="text-left">{{
-                $t("settings.disabled")
-              }}</template>
-              <template slot="text-right">{{
-                $t("settings.enabled")
-              }}</template>
-            </NsToggle>
             <NsComboBox
               v-model="language"
               :title="$t('settings.language')"
@@ -128,29 +114,42 @@
               "
               :showCloseButton="false"
             />
-            <NsPasswordInput
-              v-model="adminPassword"
-              :newPasswordLabel="
-                isAdminPasswordSet
-                  ? $t('settings.new_admin_password_optional')
-                  : $t('settings.new_admin_password')
-              "
-              :confirmPasswordLabel="$t('settings.confirm_admin_password')"
-              :newPasswordInvalidMessage="$t(error.admin_password)"
-              :confirmPasswordInvalidMessage="$t(error.confirm_password)"
-              :passwordHideLabel="$t('settings.hide_password')"
-              :passwordShowLabel="$t('settings.show_password')"
-              :lengthLabel="$t('password.long_enough')"
-              :lowercaseLabel="$t('password.lowercase_letter')"
-              :uppercaseLabel="$t('password.uppercase_letter')"
-              :numberLabel="$t('password.number')"
-              :symbolLabel="$t('password.symbol')"
-              :equalLabel="$t('password.equal')"
-              :focus="passwordFocus"
-              :clearConfirmPasswordCommand="clearConfirmPasswordCommand"
+            <NsToggle
+              v-if="isAdminPasswordSet"
+              key="changeAdminPassword"
+              value="changeAdminPassword"
+              :label="$t('settings.change_admin_password')"
+              v-model="isChangePassword"
               :disabled="stillLoading"
-              @passwordValidation="onPasswordValidation"
-              light
+              class="mg-bottom"
+            >
+              <template slot="text-left">{{
+                $t("settings.disabled")
+              }}</template>
+              <template slot="text-right">{{
+                $t("settings.enabled")
+              }}</template>
+            </NsToggle>
+            <NsPasswordInput
+              v-if="isPasswordActive"
+              key="adminPassword"
+              v-model="adminPassword"
+              :newPasswordLabel="$t('settings.admin_password')"
+              :confirmPasswordLabel="$t('settings.admin_password_confirm')"
+              :newPasswordInvalidMessage="$t(error.admin_password)"
+              :confirmPasswordInvalidMessage="$t(error.admin_password_confirm)"
+              :passwordHideLabel="core.$t('password.hide_password')"
+              :passwordShowLabel="core.$t('password.show_password')"
+              :lengthLabel="core.$t('password.long_enough')"
+              :lowercaseLabel="core.$t('password.lowercase_letter')"
+              :uppercaseLabel="core.$t('password.uppercase_letter')"
+              :numberLabel="core.$t('password.number')"
+              :symbolLabel="core.$t('password.symbol')"
+              :equalLabel="core.$t('password.equal')"
+              :focus="focusPasswordField"
+              :minLength="8"
+              :disabled="stillLoading"
+              @passwordValidation="onAdminPasswordValidation"
               class="mg-bottom maxwidth"
             />
 
@@ -377,14 +376,13 @@ export default {
       host: "",
       isLetsEncryptEnabled: false,
       isLetsEncryptCurrentlyEnabled: false,
-      isHttpToHttpsEnabled: true,
       isRouteConfigured: true,
       language: "en_GB",
       adminPassword: "",
       isAdminPasswordSet: false,
-      passwordValidation: null,
-      passwordFocus: null,
-      clearConfirmPasswordCommand: 0,
+      isChangePassword: false,
+      adminPasswordValidation: null,
+      focusPasswordField: { element: "" },
       isLdapEnabled: false,
       userDomain: "",
       userDomains: [],
@@ -407,10 +405,9 @@ export default {
         listDomainGroups: "",
         host: "",
         lets_encrypt: "",
-        http2https: "",
         language: "",
         admin_password: "",
-        confirm_password: "",
+        admin_password_confirm: "",
         user_domain: "",
         admin_group: "",
         ldap_sync: "",
@@ -426,6 +423,13 @@ export default {
         this.loading.configureModule ||
         this.loading.getStatus
       );
+    },
+    isPasswordActive() {
+      // before the configuration loads every instance looks unconfigured
+      if (this.loading.getConfiguration) {
+        return false;
+      }
+      return !this.isAdminPasswordSet || this.isChangePassword;
     },
     isRouteMissing() {
       return (
@@ -463,6 +467,15 @@ export default {
     },
   },
   watch: {
+    adminPassword() {
+      this.error.admin_password = "";
+      this.error.admin_password_confirm = "";
+    },
+    isChangePassword() {
+      this.adminPassword = "";
+      this.error.admin_password = "";
+      this.error.admin_password_confirm = "";
+    },
     userDomain(newDomain, oldDomain) {
       if (newDomain === oldDomain) {
         return;
@@ -497,8 +510,8 @@ export default {
     goToDomains() {
       this.core.$router.push("/domains");
     },
-    onPasswordValidation(validation) {
-      this.passwordValidation = validation;
+    onAdminPasswordValidation(validation) {
+      this.adminPasswordValidation = validation;
     },
     async getStatus() {
       this.loading.getStatus = true;
@@ -581,7 +594,6 @@ export default {
       this.host = config.host;
       this.isLetsEncryptEnabled = config.lets_encrypt;
       this.isLetsEncryptCurrentlyEnabled = config.lets_encrypt;
-      this.isHttpToHttpsEnabled = config.http2https;
       this.isRouteConfigured = config.route_configured;
       this.language = config.language;
       this.isAdminPasswordSet = config.admin_password_set;
@@ -595,8 +607,8 @@ export default {
       this.isLdapSyncEnabled = hasDomain ? config.ldap_sync : true;
       this.smarthost = config.smarthost;
       this.mailFrom = config.mail_from;
+      this.isChangePassword = false;
       this.adminPassword = "";
-      this.clearConfirmPasswordCommand++;
 
       this.loading.getConfiguration = false;
       this.focusElement("host");
@@ -671,17 +683,25 @@ export default {
       if (!this.language) {
         fail("language", "common.required");
       }
-      if (!this.isAdminPasswordSet && !this.adminPassword) {
-        fail("admin_password", "settings.admin_password_required", false);
-        this.passwordFocus = { element: "newPassword" };
-      } else if (this.adminPassword) {
-        const v = this.passwordValidation;
-        if (!v || !v.isLengthOk) {
-          fail("admin_password", "password.password_too_short", false);
-          this.passwordFocus = { element: "newPassword" };
+      if (this.isPasswordActive) {
+        const v = this.adminPasswordValidation;
+        const isStrong =
+          v &&
+          v.isLengthOk &&
+          v.isLowercaseOk &&
+          v.isUppercaseOk &&
+          v.isNumberOk &&
+          v.isSymbolOk;
+        if (!isStrong) {
+          fail("admin_password", "settings.admin_password_too_weak", false);
+          this.focusPasswordField = { element: "newPassword" };
         } else if (!v.isEqualOk) {
-          fail("confirm_password", "password.passwords_do_not_match", false);
-          this.passwordFocus = { element: "confirmPassword" };
+          fail(
+            "admin_password_confirm",
+            "settings.admin_password_mismatch",
+            false
+          );
+          this.focusPasswordField = { element: "confirmPassword" };
         }
       }
       if (this.isLdapEnabled && !this.userDomain) {
@@ -701,7 +721,11 @@ export default {
         } else {
           this.error[param] = this.$t("settings." + validationError.error);
           if (!focusAlreadySet) {
-            this.focusElement(param);
+            if (param === "admin_password") {
+              this.focusPasswordField = { element: "newPassword" };
+            } else {
+              this.focusElement(param);
+            }
             focusAlreadySet = true;
           }
         }
@@ -732,14 +756,13 @@ export default {
       const data = {
         host: this.host,
         lets_encrypt: this.isLetsEncryptEnabled,
-        http2https: this.isHttpToHttpsEnabled,
         language: this.language,
         user_domain: ldap ? this.userDomain : "",
         admin_group: ldap ? this.adminGroup || "" : "",
         ldap_sync: ldap && this.isLdapSyncEnabled,
         mail_from: this.mailFrom,
       };
-      if (this.adminPassword) {
+      if (this.isPasswordActive) {
         data.admin_password = this.adminPassword;
       }
 

@@ -6,7 +6,6 @@
     "examples": [
         {
             "host": "glpi.domain.org",
-            "http2https": true,
             "lets_encrypt": true,
             "route_configured": true,
             "user_domain": "ad.domain.org",
@@ -15,14 +14,19 @@
             "mail_from": "",
             "language": "en_GB",
             "admin_password_set": true,
-            "user_domains_list": ["ad.domain.org", "openldap.domain.org"],
-            "smarthost": {"enabled": true, "host": "smtp.domain.org"}
+            "user_domains_list": [
+                "ad.domain.org",
+                "openldap.domain.org"
+            ],
+            "smarthost": {
+                "enabled": true,
+                "host": "smtp.domain.org"
+            }
         }
     ],
     "type": "object",
     "required": [
         "host",
-        "http2https",
         "lets_encrypt",
         "route_configured",
         "user_domain",
@@ -35,32 +39,54 @@
         "smarthost"
     ],
     "properties": {
-        "host": {"type": "string"},
-        "lets_encrypt": {"type": "boolean"},
+        "host": {
+            "type": "string"
+        },
+        "lets_encrypt": {
+            "type": "boolean"
+        },
         "route_configured": {
             "type": "boolean",
             "description": "False when the instance has no Traefik route, for example after a clone"
         },
-        "http2https": {"type": "boolean"},
-        "user_domain": {"type": "string"},
-        "admin_group": {"type": "string"},
-        "ldap_sync": {"type": "boolean"},
-        "mail_from": {"type": "string"},
-        "language": {"type": "string"},
+        "user_domain": {
+            "type": "string"
+        },
+        "admin_group": {
+            "type": "string"
+        },
+        "ldap_sync": {
+            "type": "boolean"
+        },
+        "mail_from": {
+            "type": "string"
+        },
+        "language": {
+            "type": "string"
+        },
         "admin_password_set": {
             "type": "boolean",
             "description": "True when the glpi account password has been set from NS8"
         },
         "user_domains_list": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+                "type": "string"
+            }
         },
         "smarthost": {
             "type": "object",
-            "required": ["enabled", "host"],
+            "required": [
+                "enabled",
+                "host"
+            ],
             "properties": {
-                "enabled": {"type": "boolean"},
-                "host": {"type": "string"}
+                "enabled": {
+                    "type": "boolean"
+                },
+                "host": {
+                    "type": "string"
+                }
             }
         }
     }

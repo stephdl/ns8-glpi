@@ -6,7 +6,6 @@
     "examples": [
         {
             "host": "glpi.domain.org",
-            "http2https": true,
             "lets_encrypt": true,
             "user_domain": "ad.domain.org",
             "admin_group": "Domain Admins",
@@ -17,7 +16,6 @@
         },
         {
             "host": "glpi.domain.org",
-            "http2https": true,
             "lets_encrypt": false,
             "user_domain": "",
             "admin_group": "",
@@ -29,7 +27,6 @@
     "type": "object",
     "required": [
         "host",
-        "http2https",
         "lets_encrypt",
         "user_domain",
         "admin_group",
@@ -49,11 +46,6 @@
             "title": "Let's Encrypt certificate",
             "description": "Request a valid Let's Encrypt certificate."
         },
-        "http2https": {
-            "type": "boolean",
-            "title": "HTTP to HTTPS redirection",
-            "description": "Redirect all the HTTP requests to HTTPS"
-        },
         "user_domain": {
             "type": "string",
             "description": "NS8 user domain used for LDAP authentication. Empty for local accounts only."
@@ -70,14 +62,28 @@
             "type": "string",
             "description": "Sender address of GLPI notifications. Empty for noreply@<host>.",
             "anyOf": [
-                {"maxLength": 0},
-                {"format": "email"}
+                {
+                    "maxLength": 0
+                },
+                {
+                    "format": "email"
+                }
             ]
         },
         "language": {
             "type": "string",
             "description": "Default GLPI language",
-            "enum": ["en_GB", "en_US", "fr_FR", "it_IT", "es_ES", "de_DE", "pt_PT", "pt_BR", "nl_NL"]
+            "enum": [
+                "en_GB",
+                "en_US",
+                "fr_FR",
+                "it_IT",
+                "es_ES",
+                "de_DE",
+                "pt_PT",
+                "pt_BR",
+                "nl_NL"
+            ]
         },
         "admin_password": {
             "type": "string",

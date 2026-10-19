@@ -17,7 +17,6 @@ route = agent.get_route(os.environ['MODULE_ID'])
 
 config = {
     "host": os.getenv("TRAEFIK_HOST", ""),
-    "http2https": os.getenv("TRAEFIK_HTTP2HTTPS", "True") == "True",
     "lets_encrypt": route.get('lets_encrypt', False),
     "route_configured": bool(route),
     "user_domain": os.getenv("USER_DOMAIN", ""),

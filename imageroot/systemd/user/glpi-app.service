@@ -20,7 +20,7 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/glpi-app.pid \
     --volume glpi-data:/var/glpi:Z \
     --volume %S/glpi/local_define.php:/var/www/glpi/config/local_define.php:ro,z \
     --volume %S/glpi/php-ns8.ini:/usr/local/etc/php/conf.d/zz-ns8.ini:ro,z \
-    --env GLPI_COOKIE_SECURE=${TRAEFIK_HTTP2HTTPS} \
+    --env NS8_POD_HOSTNAME=${TRAEFIK_HOST} \
     --env-file=%S/state/secrets/glpi.env \
     --env GLPI_DB_HOST=127.0.0.1 \
     --env GLPI_DB_PORT=3306 \

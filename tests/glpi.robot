@@ -16,13 +16,13 @@ Check if glpi is installed correctly
 
 Check if glpi refuses a first configuration without admin password
     ${rc} =    Execute Command
-    ...    api-cli run module/${module_id}/configure-module --data '{"host":"${TEST_HOST}","http2https":false,"lets_encrypt":false,"user_domain":"","admin_group":"","ldap_sync":false,"mail_from":"","language":"en_GB"}'
+    ...    api-cli run module/${module_id}/configure-module --data '{"host":"${TEST_HOST}","lets_encrypt":false,"user_domain":"","admin_group":"","ldap_sync":false,"mail_from":"","language":"en_GB"}'
     ...    return_rc=True  return_stdout=False
     Should Not Be Equal As Integers    ${rc}  0
 
 Check if glpi can be configured
     ${rc} =    Execute Command
-    ...    api-cli run module/${module_id}/configure-module --data '{"host":"${TEST_HOST}","http2https":false,"lets_encrypt":false,"user_domain":"","admin_group":"","ldap_sync":false,"mail_from":"","language":"en_GB","admin_password":"${ADMIN_PASSWORD}"}'
+    ...    api-cli run module/${module_id}/configure-module --data '{"host":"${TEST_HOST}","lets_encrypt":false,"user_domain":"","admin_group":"","ldap_sync":false,"mail_from":"","language":"en_GB","admin_password":"${ADMIN_PASSWORD}"}'
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
 

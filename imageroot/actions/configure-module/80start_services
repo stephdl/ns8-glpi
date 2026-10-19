@@ -10,10 +10,11 @@ set -e
 # Redirect any output to the journal (stderr)
 exec 1>&2
 
-# A running container keeps its old HTTPS cookie setting until restarted
-running=$(podman inspect glpi-app --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | sed -n 's/^GLPI_COOKIE_SECURE=//p')
-if [[ -n "${running}" && "${running}" != "${TRAEFIK_HTTP2HTTPS}" ]]; then
-    systemctl --user restart glpi-app.service
+# The pod hostname (SMTP EHLO name) applies only at start
+running=$(podman inspect glpi-app --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -E '^NS8_POD_HOSTNAME=' | sort | tr '\n' ' ' || :)
+wanted="NS8_POD_HOSTNAME=${TRAEFIK_HOST} "
+if [[ -n "${running}" && "${running}" != "${wanted}" ]]; then
+    systemctl --user stop glpi.service
 fi
 
 systemctl --user enable glpi.service

@@ -28,7 +28,6 @@ if not request.get("replace"):
 
 configure_retval = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={
     "host": os.environ["TRAEFIK_HOST"],
-    "http2https": os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
     "lets_encrypt": os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
     "user_domain": user_domain,
     "admin_group": admin_group,

@@ -31,7 +31,6 @@
     "save": "Save",
     "glpi_fqdn": "GLPI hostname (FQDN)",
     "lets_encrypt": "Request LE Certificate",
-    "http_to_https": "Force HTTPS",
     "enabled": "Enabled",
     "disabled": "Disabled",
     "advanced": "Advanced",
@@ -47,13 +46,7 @@
     "admin_account": "Local administrator",
     "admin_account_info_title": "The glpi account",
     "admin_account_info_first": "The local glpi account has the Super-Admin profile. Choose its password now: the default glpi password is replaced. The demo accounts tech, normal and post-only are disabled.",
-    "admin_account_info_set": "The local glpi account has the Super-Admin profile and always works, even if the user domain is unavailable. Leave the fields empty to keep the current password.",
-    "new_admin_password": "Password of the glpi account",
-    "new_admin_password_optional": "New password of the glpi account (optional)",
-    "confirm_admin_password": "Confirm password",
-    "hide_password": "Hide password",
-    "show_password": "Show password",
-    "admin_password_required": "Choose a password for the glpi account",
+    "admin_account_info_set": "The local glpi account has the Super-Admin profile and always works, even if the user domain is unavailable.",
     "authentication": "Authentication",
     "no_user_domain_title": "No user domain",
     "no_user_domain_description": "Only GLPI local accounts can log in. Create or join a user domain (OpenLDAP or Active Directory) to let domain users log in to GLPI.",
@@ -82,7 +75,13 @@
     "admin_password_minLength": "The password is too short",
     "no_route_title": "This instance has no web address",
     "no_route_description": "This instance is a clone and keeps the host name of its source. Set a new host name and save to make GLPI reachable.",
-    "user_domain_not_found": "This user domain does not exist"
+    "user_domain_not_found": "This user domain does not exist",
+    "change_admin_password": "Change the glpi account password",
+    "admin_password": "Password of the glpi account",
+    "admin_password_confirm": "Confirm password",
+    "admin_password_too_weak": "Use at least 8 characters with lowercase and uppercase letters, a number and a symbol",
+    "admin_password_mismatch": "Passwords do not match",
+    "admin_password_required": "Choose a password for the glpi account"
   },
   "about": {
     "title": "About"
@@ -113,15 +112,5 @@
     "cannot_retrieve_module_info": "Cannot retrieve module info",
     "cannot_retrieve_installed_modules": "Cannot retrieve installed modules",
     "cannot_retrieve_configuration": "Cannot retrieve configuration"
-  },
-  "password": {
-    "long_enough": "Long enough",
-    "lowercase_letter": "Lowercase letter",
-    "uppercase_letter": "Uppercase letter",
-    "number": "Number",
-    "symbol": "Symbol",
-    "equal": "Passwords match",
-    "password_too_short": "The password is too short",
-    "passwords_do_not_match": "Passwords do not match"
   }
 }

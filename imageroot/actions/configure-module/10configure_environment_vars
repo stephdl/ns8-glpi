@@ -12,7 +12,6 @@ import agent
 data = json.load(sys.stdin)
 
 agent.set_env("TRAEFIK_HOST", data["host"])
-agent.set_env("TRAEFIK_HTTP2HTTPS", data["http2https"])
 agent.set_env("TRAEFIK_LETS_ENCRYPT", data["lets_encrypt"])
 agent.set_env("USER_DOMAIN", data["user_domain"])
 agent.set_env("ADMIN_GROUP", data["admin_group"] if data["user_domain"] else "")
