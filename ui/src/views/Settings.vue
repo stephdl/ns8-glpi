@@ -374,6 +374,7 @@ export default {
       validationErrorDetails: [],
       urlCheckInterval: null,
       host: "",
+      configuredHost: "",
       isLetsEncryptEnabled: false,
       isLetsEncryptCurrentlyEnabled: false,
       isRouteConfigured: true,
@@ -432,8 +433,11 @@ export default {
       return !this.isAdminPasswordSet || this.isChangePassword;
     },
     isRouteMissing() {
+      // a first configuration has no route yet: only a saved host without route means a clone
       return (
-        !this.loading.getConfiguration && this.host && !this.isRouteConfigured
+        !this.loading.getConfiguration &&
+        this.configuredHost &&
+        !this.isRouteConfigured
       );
     },
     languageOptions() {
@@ -592,6 +596,7 @@ export default {
     getConfigurationCompleted(taskContext, taskResult) {
       const config = taskResult.output;
       this.host = config.host;
+      this.configuredHost = config.host;
       this.isLetsEncryptEnabled = config.lets_encrypt;
       this.isLetsEncryptCurrentlyEnabled = config.lets_encrypt;
       this.isRouteConfigured = config.route_configured;
