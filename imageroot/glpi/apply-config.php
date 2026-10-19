@@ -117,8 +117,6 @@ function apply_ldap_directory(string $domain): int
         'use_tls'            => 0,
         'is_active'          => 1,
         'is_default'         => 1,
-        'realname_field'     => 'sn',
-        'firstname_field'    => 'givenname',
         'email1_field'       => 'mail',
         'phone_field'        => 'telephonenumber',
         'mobile_field'       => 'mobile',
@@ -137,6 +135,8 @@ function apply_ldap_directory(string $domain): int
             'use_dn'             => 1,
             'can_support_pagesize' => 1,
             'pagesize'           => 1000,
+            'realname_field'     => 'sn',
+            'firstname_field'    => 'givenname',
         ];
     } else {
         $input += [
@@ -146,6 +146,9 @@ function apply_ldap_directory(string $domain): int
             'group_condition'    => '(objectClass=posixGroup)',
             'group_member_field' => 'memberuid',
             'use_dn'             => 0,
+            // NS8 OpenLDAP splits the display name badly into cn and sn, displayName is clean
+            'realname_field'     => 'displayname',
+            'firstname_field'    => '',
         ];
     }
 
