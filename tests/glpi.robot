@@ -27,7 +27,7 @@ Check if glpi can be configured
     Should Be Equal As Integers    ${rc}  0
 
 Check if glpi login page is served
-    ${output}  ${rc} =    Execute Command    curl -s -o /dev/null -w '%{http_code}' -H 'Host: ${TEST_HOST}' http://127.0.0.1/
+    ${output}  ${rc} =    Execute Command    curl -sk -o /dev/null -w '%{http_code}' --resolve ${TEST_HOST}:443:127.0.0.1 https://${TEST_HOST}/
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}  0
     Should Be Equal    ${output}    200
