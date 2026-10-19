@@ -36,11 +36,12 @@ buildah add "${container}" imageroot /imageroot
 buildah add "${container}" ui/dist /ui
 
 buildah config --entrypoint=/ \
-    --label="org.nethserver.authorizations=traefik@node:routeadm" \
+    --label="org.nethserver.authorizations=traefik@node:routeadm cluster:accountconsumer" \
     --label="org.nethserver.tcp-ports-demand=1" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.min-core=3.20.1" \
-    --label="org.nethserver.images=docker.io/mariadb:10.11.19 docker.io/nginx:1.30.5-alpine" \
+    --label="org.nethserver.images=docker.io/mariadb:12.3.3 docker.io/glpi/glpi:12.0.0" \
+    --label="org.nethserver.volumes=glpi-data" \
     "${container}"
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
