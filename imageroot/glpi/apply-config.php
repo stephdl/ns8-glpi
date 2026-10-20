@@ -54,11 +54,8 @@ function apply_general_config(): void
 
     if ($smtp_enabled) {
         $values += [
-            'smtp_mode'              => match (env('NS8_SMTP_ENCRYPTION')) {
-                'tls'      => MAIL_SMTPSSL,
-                'starttls' => MAIL_SMTPTLS,
-                default    => MAIL_SMTP,
-            },
+            // GLPI 12 lists only PHP, SMTP and SMTP+OAUTH, and picks TLS from the port
+            'smtp_mode'              => MAIL_SMTP,
             'smtp_host'              => env('NS8_SMTP_HOST'),
             'smtp_port'              => env('NS8_SMTP_PORT', '25'),
             'smtp_username'          => env('NS8_SMTP_USERNAME'),
