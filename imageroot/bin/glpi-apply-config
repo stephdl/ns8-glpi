@@ -65,7 +65,6 @@ if smtp["enabled"] and smtp["host"]:
         "NS8_SMTP_PORT": str(smtp["port"]),
         "NS8_SMTP_USERNAME": smtp["username"],
         "NS8_SMTP_PASSWORD": smtp["password"],
-        "NS8_SMTP_ENCRYPTION": smtp["encrypt_smtp"],
         "NS8_SMTP_TLSVERIFY": "1" if smtp["tls_verify"] else "0",
     })
 
