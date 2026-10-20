@@ -43,7 +43,6 @@ function apply_general_config(): void
     $values = [
         'url_base'                 => 'https://' . $host,
         'language'                 => env('NS8_LANGUAGE', 'en_GB'),
-        'admin_email'              => $mail_from,
         'from_email'               => $mail_from,
         'admin_email_noreply'      => $mail_from,
         'is_users_auto_add'        => 1,
