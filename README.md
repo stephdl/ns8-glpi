@@ -65,6 +65,8 @@ The internal `glpi-system` account is kept: GLPI uses it for automatic actions a
 
 The module writes its settings into GLPI at every configuration, module update, smarthost change and user domain change.
 If the user domain is unreachable, the LDAP settings and the admin rule are kept as they are.
+If the user domain is removed from the cluster, the LDAP directory is disabled but not deleted, and GLPI local accounts still work.
+The same applies after a restore or a clone on a cluster without that domain.
 The LDAP directory is named `ns8-<domain>` and the admin rule `NS8 administrators group`: changes made to them from the GLPI interface are overwritten.
 
 Get the current configuration with:
