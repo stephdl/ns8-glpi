@@ -14,7 +14,7 @@ images=()
 repobase="${REPOBASE:-ghcr.io/nethserver}"
 # Configure the image name
 reponame="glpi"
-glpi_image="docker.io/glpi/glpi:12.0.0"
+glpi_image="docker.io/glpi/glpi:12.0.1"
 mariadb_image="docker.io/mariadb:12.3.3"
 
 # Show the GLPI version in the About page: the module version does not tell it
