@@ -17,7 +17,7 @@ reponame="glpi"
 # Node.js 25+ no longer ships Corepack, install it from npm
 # renovate: datasource=npm packageName=corepack
 corepack_version=0.36.0
-glpi_image="docker.io/glpi/glpi:12.0.0"
+glpi_image="docker.io/glpi/glpi:12.0.1"
 mariadb_image="docker.io/mariadb:12.3.3"
 
 # Show the GLPI version in the About page: the module version does not tell it
