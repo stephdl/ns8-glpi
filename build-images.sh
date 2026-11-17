@@ -39,7 +39,7 @@ container=$(buildah from scratch)
 # Reuse existing nodebuilder-glpi container, to speed up builds
 if ! buildah containers --format "{{.ContainerName}}" | grep -q nodebuilder-glpi; then
     echo "Pulling NodeJS runtime..."
-    buildah from --name nodebuilder-glpi -v "${PWD}:/usr/src:Z" docker.io/library/node:26.13.0-slim
+    buildah from --name nodebuilder-glpi -v "${PWD}:/usr/src:Z" docker.io/library/node:26.13.1-slim
     buildah run nodebuilder-glpi sh -c "npm install -g corepack@${corepack_version} && corepack enable"
 fi
 
