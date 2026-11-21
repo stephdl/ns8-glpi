@@ -137,7 +137,8 @@ Check the settings survive the update
     Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
     ${config} =    Run task    module/${module_id}/get-configuration    {}
     # Only the keys the stable release had: a new release may add settings
-    ${changed} =    Evaluate    [k for k, v in $config_before.items() if $config.get(k) != v]
+    # Robot variables are not visible inside a comprehension body: map() reads them outside it
+    ${changed} =    Evaluate    [k for k, old, new in zip($config_before.keys(), $config_before.values(), map($config.get, $config_before)) if old != new]
     Should Be Empty    ${changed}
 
 Check the data survives the update
