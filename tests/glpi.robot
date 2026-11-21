@@ -12,8 +12,8 @@ ${BASE_CONFIG}       "host":"${TEST_HOST}","lets_encrypt":false,"user_domain":""
 ${SCENARIO}          install
 # Boots the GLPI kernel in glpi-app, so the tests use its own classes. Single quotes stay out of the PHP code.
 ${GLPI_PHP}          podman exec glpi-app php -d display_errors=stderr -r 'require "/var/www/glpi/vendor/autoload.php"; (new Glpi\\Kernel\\Kernel())->boot();
-# The rows the update must keep, written as the glpi super-admin through GLPI classes like the UI does
-${FILL_DATA}         $u = new User(); $u->getFromDBbyName("glpi"); $_SESSION["glpiID"] = $u->getID(); $_SESSION["glpiname"] = "glpi"; $_SESSION["glpiactive_entity"] = 0; $_SESSION["glpiactiveentities"] = [0]; $_SESSION["glpiactiveentities_string"] = chr(39)."0".chr(39); $_SESSION["glpiactiveprofile"] = ["id" => 4, "interface" => "central"]; $pc = new Computer(); $pcid = $pc->add(["name" => "ci-update-pc", "serial" => "CI-SERIAL-42", "entities_id" => 0]); $t = new Ticket(); $tid = $t->add(["name" => "ci-update-ticket", "content" => "Ticket saved before the update", "entities_id" => 0, "_skip_auto_assign" => true, "items_id" => ["Computer" => [$pcid]]]); $f = new ITILFollowup(); $fid = $f->add(["itemtype" => "Ticket", "items_id" => $tid, "content" => "Followup saved before the update"]); if (!$pcid || !$tid || !$fid) { fwrite(STDERR, "add failed"); exit(1); } echo json_encode(["computer" => $pcid, "ticket" => $tid]);
+# The rows the tests read back, written as the glpi super-admin through GLPI classes like the UI does
+${FILL_DATA}         $u = new User(); $u->getFromDBbyName("glpi"); $_SESSION["glpiID"] = $u->getID(); $_SESSION["glpiname"] = "glpi"; $_SESSION["glpiactive_entity"] = 0; $_SESSION["glpiactiveentities"] = [0]; $_SESSION["glpiactiveentities_string"] = chr(39)."0".chr(39); $_SESSION["glpiactiveprofile"] = ["id" => 4, "interface" => "central"]; $pc = new Computer(); $pcid = $pc->add(["name" => "ci-update-pc", "serial" => "CI-SERIAL-42", "entities_id" => 0]); $t = new Ticket(); $tid = $t->add(["name" => "ci-update-ticket", "content" => "Ticket saved by the CI", "entities_id" => 0, "_skip_auto_assign" => true, "items_id" => ["Computer" => [$pcid]]]); $f = new ITILFollowup(); $fid = $f->add(["itemtype" => "Ticket", "items_id" => $tid, "content" => "Followup saved by the CI"]); if (!$pcid || !$tid || !$fid) { fwrite(STDERR, "add failed"); exit(1); } echo json_encode(["computer" => $pcid, "ticket" => $tid]);
 
 *** Keywords ***
 Login to cluster-admin
@@ -102,15 +102,15 @@ Check if glpi works as expected
     ${code} =    HTTP code    http://127.0.0.1/
     Should Match Regexp    ${code}    ^30[178]$
 
-Fill glpi with data before the update
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+Fill glpi with data
+    # Install checks the writes on the image under test, update checks they survive it
     ${output} =    GLPI php    ${FILL_DATA}
     &{ids} =    Evaluate    json.loads($output)    modules=json
     Set Suite Variable    ${pcid}    ${ids.computer}
     Set Suite Variable    ${tid}    ${ids.ticket}
     ${data} =    Saved data    ${pcid}    ${tid}
     Set Suite Variable    ${data_before}    ${data}
-    ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app sh -c 'echo saved-before-update > /var/glpi/files/ci-update.txt'
+    ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app sh -c 'echo saved-by-the-ci > /var/glpi/files/ci-update.txt'
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
     ${config} =    Run task    module/${module_id}/get-configuration    {}
@@ -141,15 +141,15 @@ Check the settings survive the update
     ${changed} =    Evaluate    [k for k, old, new in zip($config_before.keys(), $config_before.values(), map($config.get, $config_before)) if old != new]
     Should Be Empty    ${changed}
 
-Check the data survives the update
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+Check the data is still there
+    # Right after the writes in the install scenario, after the update in the other one
     ${data} =    Saved data    ${pcid}    ${tid}
     Should Be Equal    ${data}    ${data_before}
-    Should Be Equal    ${data}    ["ci-update-pc","CI-SERIAL-42","ci-update-ticket","Ticket saved before the update",1,1]
+    Should Be Equal    ${data}    ["ci-update-pc","CI-SERIAL-42","ci-update-ticket","Ticket saved by the CI",1,1]
     ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app cat /var/glpi/files/ci-update.txt
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}  0
-    Should Be Equal    ${output}    saved-before-update
+    Should Be Equal    ${output}    saved-by-the-ci
 
 Check the database schema matches the new release
     Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
