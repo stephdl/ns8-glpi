@@ -9,6 +9,11 @@ ${ADMIN_PASSWORD}    Nethesis,1234
 ${TEST_HOST}         glpi.ns8-ci.test
 ${GLPI_PASSWORD}     Ns8,Glpi-Test1
 ${BASE_CONFIG}       "host":"${TEST_HOST}","lets_encrypt":false,"user_domain":"","admin_group":"","ldap_sync":false,"mail_from":"","language":"en_GB"
+${SCENARIO}          install
+# Boots the GLPI kernel in glpi-app, so the tests use its own classes. Single quotes stay out of the PHP code.
+${GLPI_PHP}          podman exec glpi-app php -r 'require "/var/www/glpi/vendor/autoload.php"; (new Glpi\\Kernel\\Kernel())->boot();
+# The rows the update must keep, written as the glpi super-admin through GLPI classes like the UI does
+${FILL_DATA}         $u = new User(); $u->getFromDBbyName("glpi"); $_SESSION["glpiID"] = $u->getID(); $_SESSION["glpiname"] = "glpi"; $_SESSION["glpiactive_entity"] = 0; $_SESSION["glpiactiveentities"] = [0]; $_SESSION["glpiactiveentities_string"] = chr(39)."0".chr(39); $_SESSION["glpiactiveprofile"] = ["id" => 4, "interface" => "central"]; $pc = new Computer(); $pcid = $pc->add(["name" => "ci-update-pc", "serial" => "CI-SERIAL-42", "entities_id" => 0]); $t = new Ticket(); $tid = $t->add(["name" => "ci-update-ticket", "content" => "Ticket saved before the update", "entities_id" => 0, "_skip_auto_assign" => true, "items_id" => ["Computer" => [$pcid]]]); $f = new ITILFollowup(); $f->add(["itemtype" => "Ticket", "items_id" => $tid, "content" => "Followup saved before the update"]); echo json_encode(["computer" => $pcid, "ticket" => $tid]);
 
 *** Keywords ***
 Login to cluster-admin
@@ -28,6 +33,25 @@ GLPI answers
     ${code} =    HTTP code    https://127.0.0.1/    -L
     Should Be Equal    ${code}    200
 
+Enable the stephdl forge
+    # The module is published there, not in the default NS8 repositories
+    ${rc} =    Execute Command
+    ...    api-cli run add-repository --data '{"name":"stephdl","url":"https://forge.de-labrusse.fr/ns8/updates/","status":true}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+
+GLPI php
+    [Arguments]    ${code}
+    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} ${GLPI_PHP} ${code}'
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}  0
+    RETURN    ${output}
+
+Saved data
+    [Arguments]    ${pcid}    ${tid}
+    ${output} =    GLPI php    $pc = new Computer(); $pc->getFromDB(${pcid}); $t = new Ticket(); $t->getFromDB(${tid}); echo json_encode([$pc->fields["name"], $pc->fields["serial"], $t->fields["name"], strip_tags(html_entity_decode($t->fields["content"])), countElementsInTable("glpi_items_tickets", ["tickets_id" => ${tid}, "itemtype" => "Computer", "items_id" => ${pcid}]), countElementsInTable("glpi_itilfollowups", ["itemtype" => "Ticket", "items_id" => ${tid}])]);
+    RETURN    ${output}
+
 Log in to GLPI
     [Arguments]    ${user}    ${password}
     # The first GET sets the session cookie that front/login.php requires
@@ -37,7 +61,15 @@ Log in to GLPI
 
 *** Test Cases ***
 Check if glpi is installed correctly
-    ${output}  ${rc} =    Execute Command    add-module ${IMAGE_URL} 1
+    # The update scenario starts from the release published in the stephdl forge,
+    # and moves it to the image under test after the first checks
+    IF    '${SCENARIO}' == 'update'
+        Enable the stephdl forge
+        ${image} =    Set Variable    glpi
+    ELSE
+        ${image} =    Set Variable    ${IMAGE_URL}
+    END
+    ${output}  ${rc} =    Execute Command    add-module ${image} 1
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}  0
     &{output} =    Evaluate    ${output}
@@ -80,9 +112,7 @@ Check if glpi works as expected
     Should Match Regexp    ${code}    ^30[178]$
 
 Check if the default glpi password is replaced
-    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app php -r 'require "/var/www/glpi/vendor/autoload.php"; (new Glpi\\Kernel\\Kernel())->boot(); $u = new User(); $u->getFromDBbyName("glpi"); echo Auth::checkPassword("glpi", $u->fields["password"]) ? "default" : "changed";'
-    ...    return_rc=True
-    Should Be Equal As Integers    ${rc}  0
+    ${output} =    GLPI php    $u = new User(); $u->getFromDBbyName("glpi"); echo Auth::checkPassword("glpi", $u->fields["password"]) ? "default" : "changed";
     Should Be Equal    ${output}    changed
 
 Check the admin can log in
@@ -99,6 +129,58 @@ Check a reconfigure without password is accepted
     Run task    module/${module_id}/configure-module    {${BASE_CONFIG}}
     ${config} =    Run task    module/${module_id}/get-configuration    {}
     Should Be True    ${config['admin_password_set']}
+
+Fill glpi with data before the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${output} =    GLPI php    ${FILL_DATA}
+    &{ids} =    Evaluate    json.loads($output)    modules=json
+    Set Suite Variable    ${pcid}    ${ids.computer}
+    Set Suite Variable    ${tid}    ${ids.ticket}
+    ${data} =    Saved data    ${pcid}    ${tid}
+    Set Suite Variable    ${data_before}    ${data}
+    ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app sh -c 'echo saved-before-update > /var/glpi/files/ci-update.txt'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+    ${config} =    Run task    module/${module_id}/get-configuration    {}
+    Set Suite Variable    ${config_before}    ${config}
+
+Update glpi to the image under test
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${rc} =    Execute Command
+    ...    api-cli run update-module --data '{"force":true,"module_url":"${IMAGE_URL}","instances":["${module_id}"]}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+    ${image} =    Execute Command    runagent -m ${module_id} printenv IMAGE_URL
+    Should Be Equal    ${image}    ${IMAGE_URL}
+    # The entrypoint migrates the database schema before Apache answers
+    Wait Until Keyword Succeeds    30 times    10 seconds    GLPI answers
+
+Check the settings survive the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${config} =    Run task    module/${module_id}/get-configuration    {}
+    Should Be Equal    ${config}    ${config_before}
+
+Check the data survives the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${data} =    Saved data    ${pcid}    ${tid}
+    Should Be Equal    ${data}    ${data_before}
+    Should Be Equal    ${data}    ["ci-update-pc","CI-SERIAL-42","ci-update-ticket","Ticket saved before the update",1,1]
+    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app cat /var/glpi/files/ci-update.txt
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}  0
+    Should Be Equal    ${output}    saved-before-update
+
+Check the database schema matches the new release
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app php /var/www/glpi/bin/console db:is_up_to_date
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}  0
+    Should Contain    ${output}    The database is up to date
+
+Check the admin can log in after the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${page} =    Log in to GLPI    glpi    ${GLPI_PASSWORD}
+    Should Contain    ${page}    ti-logout
 
 Take screenshots
     [Tags]    ui

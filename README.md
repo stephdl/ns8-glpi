@@ -128,6 +128,12 @@ Test the module using the `test-module.sh` script:
 
 The tests are made using [Robot Framework](https://robotframework.org/).
 
+CI runs the suite twice. The install scenario starts from the image under test. The update
+scenario installs the release published in the stephdl forge, saves a computer, a ticket linked
+to it with a followup, and a file in the data volume, then updates to the image under test. It
+checks that the settings, the data and the file survive, that the database schema matches the
+new GLPI release, and that the admin can still log in.
+
 ## UI translation
 
 Translated with [Weblate](https://hosted.weblate.org/projects/ns8/).
