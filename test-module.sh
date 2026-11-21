@@ -7,6 +7,8 @@
 
 LEADER_NODE=$1
 IMAGE_URL=$2
+# install, or update to start from the release of the stephdl forge
+SCENARIO=${3:-install}
 SSH_KEYFILE=${SSH_KEYFILE:-$HOME/.ssh/id_rsa}
 
 ssh_key="$(cat $SSH_KEYFILE)"
@@ -23,6 +25,7 @@ podman run -i \
     cd /home/pwuser/ns8-module
     robot -v NODE_ADDR:${LEADER_NODE} \
         -v IMAGE_URL:${IMAGE_URL} \
+        -v SCENARIO:${SCENARIO} \
         -v SSH_KEYFILE:/home/pwuser/ns8-key \
 	-d ~/outputs /home/pwuser/ns8-module/tests/
 EOF

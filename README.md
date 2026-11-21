@@ -124,9 +124,17 @@ To uninstall the instance:
 
 Test the module using the `test-module.sh` script:
 
-    ./test-module.sh <NODE_ADDR> ghcr.io/stephdl/glpi:latest
+    ./test-module.sh <NODE_ADDR> ghcr.io/stephdl/glpi:latest [install|update]
 
 The tests are made using [Robot Framework](https://robotframework.org/).
+
+CI runs the suite twice. Both scenarios save a computer, a ticket linked to it with a
+followup, and a file in the data volume, and read them back. The install scenario starts from
+the image under test and reads them back at once. The update scenario saves them with the
+release published in the stephdl forge, then updates to the image under test. It checks that
+the settings, the data and the file survive, that the database schema matches the
+new GLPI release, then runs the other checks on the upgraded module. The update scenario fails
+when the forge release ships a newer GLPI than the image under test.
 
 ## UI translation
 
