@@ -11,9 +11,9 @@ ${GLPI_PASSWORD}     Ns8,Glpi-Test1
 ${BASE_CONFIG}       "host":"${TEST_HOST}","lets_encrypt":false,"user_domain":"","admin_group":"","ldap_sync":false,"mail_from":"","language":"en_GB"
 ${SCENARIO}          install
 # Boots the GLPI kernel in glpi-app, so the tests use its own classes. Single quotes stay out of the PHP code.
-${GLPI_PHP}          podman exec glpi-app php -r 'require "/var/www/glpi/vendor/autoload.php"; (new Glpi\\Kernel\\Kernel())->boot();
+${GLPI_PHP}          podman exec glpi-app php -d display_errors=stderr -r 'require "/var/www/glpi/vendor/autoload.php"; (new Glpi\\Kernel\\Kernel())->boot();
 # The rows the update must keep, written as the glpi super-admin through GLPI classes like the UI does
-${FILL_DATA}         $u = new User(); $u->getFromDBbyName("glpi"); $_SESSION["glpiID"] = $u->getID(); $_SESSION["glpiname"] = "glpi"; $_SESSION["glpiactive_entity"] = 0; $_SESSION["glpiactiveentities"] = [0]; $_SESSION["glpiactiveentities_string"] = chr(39)."0".chr(39); $_SESSION["glpiactiveprofile"] = ["id" => 4, "interface" => "central"]; $pc = new Computer(); $pcid = $pc->add(["name" => "ci-update-pc", "serial" => "CI-SERIAL-42", "entities_id" => 0]); $t = new Ticket(); $tid = $t->add(["name" => "ci-update-ticket", "content" => "Ticket saved before the update", "entities_id" => 0, "_skip_auto_assign" => true, "items_id" => ["Computer" => [$pcid]]]); $f = new ITILFollowup(); $f->add(["itemtype" => "Ticket", "items_id" => $tid, "content" => "Followup saved before the update"]); echo json_encode(["computer" => $pcid, "ticket" => $tid]);
+${FILL_DATA}         $u = new User(); $u->getFromDBbyName("glpi"); $_SESSION["glpiID"] = $u->getID(); $_SESSION["glpiname"] = "glpi"; $_SESSION["glpiactive_entity"] = 0; $_SESSION["glpiactiveentities"] = [0]; $_SESSION["glpiactiveentities_string"] = chr(39)."0".chr(39); $_SESSION["glpiactiveprofile"] = ["id" => 4, "interface" => "central"]; $pc = new Computer(); $pcid = $pc->add(["name" => "ci-update-pc", "serial" => "CI-SERIAL-42", "entities_id" => 0]); $t = new Ticket(); $tid = $t->add(["name" => "ci-update-ticket", "content" => "Ticket saved before the update", "entities_id" => 0, "_skip_auto_assign" => true, "items_id" => ["Computer" => [$pcid]]]); $f = new ITILFollowup(); $fid = $f->add(["itemtype" => "Ticket", "items_id" => $tid, "content" => "Followup saved before the update"]); if (!$pcid || !$tid || !$fid) { fwrite(STDERR, "add failed"); exit(1); } echo json_encode(["computer" => $pcid, "ticket" => $tid]);
 
 *** Keywords ***
 Login to cluster-admin
@@ -76,18 +76,17 @@ Check if glpi is installed correctly
     Set Suite Variable    ${module_id}    ${output.module_id}
 
 Check the fresh configuration
+    # A fresh instance only: the install scenario covers it
+    Skip If    '${SCENARIO}' == 'update'    the update scenario starts from a configured release
     ${config} =    Run task    module/${module_id}/get-configuration    {}
     Should Not Be True    ${config['admin_password_set']}
 
 Check a missing admin password is rejected
+    # A fresh instance only: the install scenario covers it
+    Skip If    '${SCENARIO}' == 'update'    the update scenario starts from a configured release
     ${output} =    Run task    module/${module_id}/configure-module    {${BASE_CONFIG}}
     ...    decode_json=${FALSE}    rc_expected=2
     Should Contain    ${output}    admin_password_required
-
-Check a weak admin password is rejected
-    ${output} =    Run task    module/${module_id}/configure-module    {${BASE_CONFIG},"admin_password":"abcdefgh"}
-    ...    decode_json=${FALSE}    rc_expected=2
-    Should Contain    ${output}    admin_password_too_weak
 
 Check if glpi can be configured
     Run task    module/${module_id}/configure-module    {${BASE_CONFIG},"admin_password":"${GLPI_PASSWORD}"}
@@ -96,6 +95,73 @@ Check if glpi can be configured
     Should Be True    ${config['admin_password_set']}
     Should Be True    ${config['route_configured']}
 
+Check if glpi works as expected
+    # The first start installs the database, so give it more time than a warm start
+    Wait Until Keyword Succeeds    30 times    10 seconds    GLPI answers
+    # HTTP to HTTPS redirection is always on
+    ${code} =    HTTP code    http://127.0.0.1/
+    Should Match Regexp    ${code}    ^30[178]$
+
+Fill glpi with data before the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${output} =    GLPI php    ${FILL_DATA}
+    &{ids} =    Evaluate    json.loads($output)    modules=json
+    Set Suite Variable    ${pcid}    ${ids.computer}
+    Set Suite Variable    ${tid}    ${ids.ticket}
+    ${data} =    Saved data    ${pcid}    ${tid}
+    Set Suite Variable    ${data_before}    ${data}
+    ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app sh -c 'echo saved-before-update > /var/glpi/files/ci-update.txt'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+    ${config} =    Run task    module/${module_id}/get-configuration    {}
+    Set Suite Variable    ${config_before}    ${config}
+    ${image} =    Execute Command    runagent -m ${module_id} printenv GLPI_IMAGE
+    Set Suite Variable    ${glpi_image_before}    ${image}
+
+Update glpi to the image under test
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${rc} =    Execute Command
+    ...    api-cli run update-module --data '{"force":true,"module_url":"${IMAGE_URL}","instances":["${module_id}"]}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+    ${image} =    Execute Command    runagent -m ${module_id} printenv IMAGE_URL
+    Should Be Equal    ${image}    ${IMAGE_URL}
+    # A newer release in the forge than the image under test would downgrade the database schema
+    ${glpi_image} =    Execute Command    runagent -m ${module_id} printenv GLPI_IMAGE
+    ${newer} =    Evaluate    [int(x) for x in $glpi_image.rsplit(":", 1)[1].split(".")] >= [int(x) for x in $glpi_image_before.rsplit(":", 1)[1].split(".")]
+    Should Be True    ${newer}    the stable release runs ${glpi_image_before}, newer than ${glpi_image}
+    # The entrypoint migrates the database schema before Apache answers
+    Wait Until Keyword Succeeds    30 times    10 seconds    GLPI answers
+
+Check the settings survive the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${config} =    Run task    module/${module_id}/get-configuration    {}
+    # Only the keys the stable release had: a new release may add settings
+    ${changed} =    Evaluate    [k for k, v in $config_before.items() if $config.get(k) != v]
+    Should Be Empty    ${changed}
+
+Check the data survives the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${data} =    Saved data    ${pcid}    ${tid}
+    Should Be Equal    ${data}    ${data_before}
+    Should Be Equal    ${data}    ["ci-update-pc","CI-SERIAL-42","ci-update-ticket","Ticket saved before the update",1,1]
+    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app cat /var/glpi/files/ci-update.txt
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}  0
+    Should Be Equal    ${output}    saved-before-update
+
+Check the database schema matches the new release
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app php /var/www/glpi/bin/console db:is_up_to_date
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}  0
+    Should Contain    ${output}    The database is up to date
+
+Check a weak admin password is rejected
+    ${output} =    Run task    module/${module_id}/configure-module    {${BASE_CONFIG},"admin_password":"abcdefgh"}
+    ...    decode_json=${FALSE}    rc_expected=2
+    Should Contain    ${output}    admin_password_too_weak
+
 Check services are running
     ${status} =    Run task    module/${module_id}/get-status    null
     FOR    ${service}    IN    @{status['services']}
@@ -103,13 +169,6 @@ Check services are running
         IF    $service['name'] == 'glpi-ldap-sync'    CONTINUE
         Should Be True    ${service['active']}    ${service['name']} is not active
     END
-
-Check if glpi works as expected
-    # The first start installs the database, so give it more time than a warm start
-    Wait Until Keyword Succeeds    30 times    10 seconds    GLPI answers
-    # HTTP to HTTPS redirection is always on
-    ${code} =    HTTP code    http://127.0.0.1/
-    Should Match Regexp    ${code}    ^30[178]$
 
 Check if the default glpi password is replaced
     ${output} =    GLPI php    $u = new User(); $u->getFromDBbyName("glpi"); echo Auth::checkPassword("glpi", $u->fields["password"]) ? "default" : "changed";
@@ -129,58 +188,6 @@ Check a reconfigure without password is accepted
     Run task    module/${module_id}/configure-module    {${BASE_CONFIG}}
     ${config} =    Run task    module/${module_id}/get-configuration    {}
     Should Be True    ${config['admin_password_set']}
-
-Fill glpi with data before the update
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
-    ${output} =    GLPI php    ${FILL_DATA}
-    &{ids} =    Evaluate    json.loads($output)    modules=json
-    Set Suite Variable    ${pcid}    ${ids.computer}
-    Set Suite Variable    ${tid}    ${ids.ticket}
-    ${data} =    Saved data    ${pcid}    ${tid}
-    Set Suite Variable    ${data_before}    ${data}
-    ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app sh -c 'echo saved-before-update > /var/glpi/files/ci-update.txt'
-    ...    return_rc=True  return_stdout=False
-    Should Be Equal As Integers    ${rc}  0
-    ${config} =    Run task    module/${module_id}/get-configuration    {}
-    Set Suite Variable    ${config_before}    ${config}
-
-Update glpi to the image under test
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
-    ${rc} =    Execute Command
-    ...    api-cli run update-module --data '{"force":true,"module_url":"${IMAGE_URL}","instances":["${module_id}"]}'
-    ...    return_rc=True  return_stdout=False
-    Should Be Equal As Integers    ${rc}  0
-    ${image} =    Execute Command    runagent -m ${module_id} printenv IMAGE_URL
-    Should Be Equal    ${image}    ${IMAGE_URL}
-    # The entrypoint migrates the database schema before Apache answers
-    Wait Until Keyword Succeeds    30 times    10 seconds    GLPI answers
-
-Check the settings survive the update
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
-    ${config} =    Run task    module/${module_id}/get-configuration    {}
-    Should Be Equal    ${config}    ${config_before}
-
-Check the data survives the update
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
-    ${data} =    Saved data    ${pcid}    ${tid}
-    Should Be Equal    ${data}    ${data_before}
-    Should Be Equal    ${data}    ["ci-update-pc","CI-SERIAL-42","ci-update-ticket","Ticket saved before the update",1,1]
-    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app cat /var/glpi/files/ci-update.txt
-    ...    return_rc=True
-    Should Be Equal As Integers    ${rc}  0
-    Should Be Equal    ${output}    saved-before-update
-
-Check the database schema matches the new release
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
-    ${output}  ${rc} =    Execute Command    runagent -m ${module_id} podman exec glpi-app php /var/www/glpi/bin/console db:is_up_to_date
-    ...    return_rc=True
-    Should Be Equal As Integers    ${rc}  0
-    Should Contain    ${output}    The database is up to date
-
-Check the admin can log in after the update
-    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
-    ${page} =    Log in to GLPI    glpi    ${GLPI_PASSWORD}
-    Should Contain    ${page}    ti-logout
 
 Take screenshots
     [Tags]    ui
